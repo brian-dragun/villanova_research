@@ -1,0 +1,15 @@
+an adversarial attack refers to intentionally modifying input images in a way that tricks the neural network into making incorrect classifications while keeping the image almost indistinguishable to the human eye.
+
+For your SqueezeNet CIFAR-10 models, we are testing Fast Gradient Sign Method (FGSM), which slightly perturbs the input images to deceive the model.
+
+
+Evaluates Model Robustness
+
+If a model’s accuracy drops significantly when under attack (e.g., from 71% to 14%), it means the model is not robust to adversarial attacks.
+Tests Pruning and Noise Injection
+
+The pruned model (which removes "less important" weights) is highly vulnerable (5.47% accuracy).
+The noisy model (which introduces slight random variations) retains similar adversarial robustness as the original.
+Demonstrates Security Weaknesses in AI
+
+Small changes to an image can fool deep learning models, which can be dangerous in applications like autonomous driving, medical AI, or facial recognition.

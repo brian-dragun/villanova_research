@@ -21,8 +21,16 @@ def fgsm_attack(image, epsilon, gradient):
 
 # Evaluate robustness of a model
 def evaluate_robustness(model_path, epsilon=0.05):
-    # Load model
-    model = torch.load(model_path, weights_only=False)  # Load full model
+    # Load model architecture
+    model = models.squeezenet1_0(weights=None)  # Define model structure
+    model.classifier[1] = torch.nn.Conv2d(512, 10, kernel_size=(1, 1))
+    
+    # Load weights
+    checkpoint = torch.load(model_path, weights_only=False)
+    if isinstance(checkpoint, torch.nn.Module):
+        model = checkpoint
+    else:
+        model.load_state_dict(checkpoint)  # Load only weights
     model.eval()
     
     # Move model to GPU if available
