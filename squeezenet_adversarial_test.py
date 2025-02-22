@@ -19,21 +19,21 @@ def fgsm_attack(image, epsilon, gradient):
     perturbation = epsilon * gradient.sign()
     return torch.clamp(image + perturbation, -1, 1)  # Ensure valid image range
 
-# Evaluate robustness of a model
-def evaluate_robustness(model_path, epsilon=0.05):
+def test_adversarial_robustness(model_path, epsilon=0.05):
+    """Evaluates model robustness against adversarial attacks (FGSM)."""
+    
     # Load model architecture
     model = models.squeezenet1_0(weights=None)  # Define model structure
     model.classifier[1] = torch.nn.Conv2d(512, 10, kernel_size=(1, 1))
     
     # Load weights
-    checkpoint = torch.load(model_path, weights_only=False)
+    checkpoint = torch.load(model_path, map_location=torch.device('cpu'))  # Ensure correct loading
     if isinstance(checkpoint, torch.nn.Module):
         model = checkpoint
     else:
         model.load_state_dict(checkpoint)  # Load only weights
-    model.eval()
     
-    # Move model to GPU if available
+    model.eval()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
 
@@ -66,7 +66,8 @@ def evaluate_robustness(model_path, epsilon=0.05):
     print(f"Adversarial Accuracy of {model_path} at Epsilon={epsilon}: {adv_accuracy:.2f}%")
     return adv_accuracy
 
-# Evaluate robustness for all models
-evaluate_robustness("data/squeezenet_cifar10.pth")  # Original model
-evaluate_robustness("data/squeezenet_pruned.pth")  # Pruned model
-evaluate_robustness("data/squeezenet_noisy.pth")  # Noisy model
+# If running standalone, test adversarial robustness
+if __name__ == "__main__":
+    test_adversarial_robustness("data/squeezenet_cifar10.pth")
+    test_adversarial_robustness("data/squeezenet_pruned.pth")
+    test_adversarial_robustness("data/squeezenet_noisy.pth")

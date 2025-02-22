@@ -1,12 +1,8 @@
 import torch
 import torchvision.models as models
-import torchvision
 import torchvision.transforms as transforms
+import torchvision.datasets as datasets
 from torch.utils.data import DataLoader
-import torch.serialization
-torch.serialization.add_safe_globals([torch.nn.Sequential])
-
-
 
 # Load CIFAR-10 test dataset
 transform = transforms.Compose([
@@ -14,26 +10,33 @@ transform = transforms.Compose([
     transforms.Normalize((0.5,), (0.5,))
 ])
 
-testset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform)
+testset = datasets.CIFAR10(root='./data', train=False, download=True, transform=transform)
 testloader = DataLoader(testset, batch_size=64, shuffle=False)
 
 # Function to evaluate model accuracy
-def evaluate_model(model_path, full_model=False, num_classes=10):
-    # Load model
-    if full_model:
-        model = torch.load(model_path, weights_only=False)  # Explicitly allow full model loading
-    else:
-        model = models.squeezenet1_0(weights=None)
-        model.classifier[1] = torch.nn.Conv2d(512, num_classes, kernel_size=(1, 1))
-        model.load_state_dict(torch.load(model_path, weights_only=True))
+def evaluate_model(model_path, num_classes=10):
+    """Evaluates model accuracy on CIFAR-10 dataset."""
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+    try:
+        # Load model as full object (if stored as full model)
+        checkpoint = torch.load(model_path, map_location=device)
+
+        if isinstance(checkpoint, torch.nn.Module):
+            model = checkpoint  # Already a full model
+        else:
+            # If weights-only, create a model and load weights
+            model = models.squeezenet1_0(weights=None)
+            model.classifier[1] = torch.nn.Conv2d(512, num_classes, kernel_size=(1, 1))
+            model.load_state_dict(checkpoint)
+
+    except Exception as e:
+        print(f"⚠️ Failed to load {model_path}: {e}")
+        return
+
+    model.to(device)
     model.eval()
 
-    # Move model to GPU if available
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model.to(device)
-
-    # Evaluate model accuracy
     correct, total = 0, 0
     with torch.no_grad():
         for images, labels in testloader:
@@ -44,10 +47,10 @@ def evaluate_model(model_path, full_model=False, num_classes=10):
             correct += (predicted == labels).sum().item()
 
     accuracy = 100 * correct / total
-    print(f"Accuracy of {model_path}: {accuracy:.2f}%")
+    print(f"✅ Accuracy of {model_path}: {accuracy:.2f}%")
     return accuracy
 
 # Evaluate all models
 evaluate_model("data/squeezenet_cifar10.pth")  # Original model
-evaluate_model("data/squeezenet_pruned.pth", full_model=True)  # Pruned model
+evaluate_model("data/squeezenet_pruned.pth")  # Pruned model
 evaluate_model("data/squeezenet_noisy.pth")  # Noisy model
