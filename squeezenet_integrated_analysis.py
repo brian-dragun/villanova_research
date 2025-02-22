@@ -13,8 +13,9 @@ from torch.utils.data import DataLoader
 def compute_hessian_sensitivity_dict(model, dataloader, device):
     """
     Compute a Hessian-based sensitivity score for each parameter in the model.
-    For each parameter, we compute the second derivative (diagonal of the Hessian)
-    with respect to the loss (using one batch), and sum its absolute values.
+    For each parameter, we compute the first derivative (gradient) of a simple loss
+    with respect to that parameter (with create_graph and retain_graph enabled),
+    then compute the second derivative (diagonal of the Hessian) and sum its absolute values.
     """
     model.eval()
     sensitivity_scores = {}
@@ -26,16 +27,16 @@ def compute_hessian_sensitivity_dict(model, dataloader, device):
     outputs = model(images)
     loss = torch.sum(outputs)
     
-    # For each parameter compute gradient and then the second derivative
     for name, param in model.named_parameters():
         if param.requires_grad:
-            # First-order gradient for this parameter
-            grad = autograd.grad(loss, param, create_graph=True)[0]
-            # Compute the second derivative (diagonal of Hessian) for this parameter
-            hessian_diag = autograd.grad(grad, param, grad_outputs=torch.ones_like(grad))[0]
+            # Compute the gradient with retain_graph=True to keep the graph alive for subsequent backward passes
+            grad = torch.autograd.grad(loss, param, create_graph=True, retain_graph=True)[0]
+            # Compute the second derivative (diagonal of Hessian)
+            hessian_diag = torch.autograd.grad(grad, param, grad_outputs=torch.ones_like(grad), retain_graph=True)[0]
             sensitivity = hessian_diag.abs().sum().item()
             sensitivity_scores[name] = sensitivity
     return sensitivity_scores
+
 
 ###############################
 # Part 2: Super Weight Outlier Detection
