@@ -1,5 +1,16 @@
 # **Villanova Research - Running Order Guide**
 
+## **Python Setup**
+https://mothergeo-py.readthedocs.io/en/latest/development/how-to/venv-win.html
+
+cd my-project
+virtualenv venv
+
+.\venv\Scripts\activate
+
+
+
+
 ## **📌 Overview**
 This guide provides the correct order to run the scripts in your research workflow, along with a brief description of what each script does.
 
