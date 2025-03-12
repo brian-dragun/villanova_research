@@ -2,18 +2,15 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from datasets import load_dataset
 import math
+from config import MODEL_NAME
 
 def evaluate_model(model_path, dataset_split="validation"):
-    """
-    Evaluates the model by computing perplexity on a text dataset.
-    """
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    MODEL_NAME = "meta-llama/Llama-2-7b"  # update as needed
-    model = AutoModelForCausalLM.from_pretrained(MODEL_NAME)
-    model.load_state_dict(torch.load(model_path, map_location=device))  # load state dict
+    model = AutoModelForCausalLM.from_pretrained(MODEL_NAME, trust_remote_code=True)
+    model.load_state_dict(torch.load(model_path, map_location=device))
     model.to(device)
     model.eval()
-    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, trust_remote_code=True)
     
     dataset = load_dataset("wikitext", "wikitext-2-raw-v1", split=dataset_split)
     

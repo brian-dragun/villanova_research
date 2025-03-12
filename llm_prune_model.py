@@ -1,11 +1,10 @@
 import torch
 from transformers import AutoModelForCausalLM
 from llm_super_weights import compute_weight_statistics
+from config import MODEL_NAME
 
 def compute_sensitivity(model):
-    """
-    Compute a simple sensitivity score (average absolute weight) for each parameter.
-    """
+    """Compute a simple sensitivity score (mean absolute weight) for each parameter."""
     sensitivity_scores = {}
     for name, param in model.named_parameters():
         if "weight" in name and param.requires_grad:
@@ -13,10 +12,7 @@ def compute_sensitivity(model):
     return sensitivity_scores
 
 def prune_layerwise(model, sensitivity_scores, prune_ratio=0.05):
-    """
-    Prunes model weights in-place based on sensitivity scores.
-    We zero out weights below a threshold defined by prune_ratio * (mean absolute value).
-    """
+    """Prune model weights in-place based on a sensitivity threshold."""
     for name, param in model.named_parameters():
         if "weight" in name and param.requires_grad and name in sensitivity_scores:
             threshold = prune_ratio * sensitivity_scores[name]
@@ -25,9 +21,8 @@ def prune_layerwise(model, sensitivity_scores, prune_ratio=0.05):
     return model
 
 def prune_model(model_path, pruned_model_path, prune_ratio=0.05):
-    MODEL_NAME = "meta-llama/Llama-2-7b"  # update as needed
-    model = AutoModelForCausalLM.from_pretrained(MODEL_NAME)
-    model.load_state_dict(torch.load(model_path, map_location="cpu"))  # load fine-tuned state dict
+    model = AutoModelForCausalLM.from_pretrained(MODEL_NAME, trust_remote_code=True)
+    model.load_state_dict(torch.load(model_path, map_location="cpu"))
     model.eval()
     
     sensitivity_scores = compute_sensitivity(model)

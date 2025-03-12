@@ -1,4 +1,5 @@
 import os
+from config import MODEL_NAME
 from llm_train import train_model
 from llm_prune_model import prune_model
 from llm_evaluate_models import evaluate_model
@@ -32,11 +33,11 @@ def main():
     
     # Step 4: Apply robustness test (adding noise to weights)
     print("\n🎭 **Step 4: Applying Robustness Test (Adding Noise)**")
-    apply_robustness_test("meta-llama/Llama-2-7b", model_paths["noisy"])
+    apply_robustness_test(MODEL_NAME, model_paths["noisy"])
     
     # Step 5: Adversarial testing (FGSM attack on embeddings)
     print("\n🛡 **Step 5: Adversarial Testing (FGSM Attack on Embeddings)**")
-    test_adversarial_robustness("meta-llama/Llama-2-7b", epsilon=0.05, prompt="Once upon a time")
+    test_adversarial_robustness(MODEL_NAME, epsilon=0.05, prompt="Once upon a time")
     
     # Step 6: Integrated Sensitivity and Super Weight Analysis
     print("\n🔍 **Step 6: Integrated Sensitivity and Super Weight Analysis**")

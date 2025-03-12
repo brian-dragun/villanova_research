@@ -1,12 +1,9 @@
 import torch
 import numpy as np
 from transformers import AutoModelForCausalLM
+from config import MODEL_NAME
 
 def compute_weight_statistics(model):
-    """
-    Compute basic statistics for each weight tensor in the model.
-    Returns a dictionary mapping parameter names to their mean, std, and maximum absolute value.
-    """
     stats = {}
     for name, param in model.named_parameters():
         if "weight" in name and param.requires_grad:
@@ -19,10 +16,6 @@ def compute_weight_statistics(model):
     return stats
 
 def identify_super_weights(model, z_threshold=2.5):
-    """
-    Identify super weights using a Z-score threshold.
-    Returns a dictionary mapping parameter names to the indices of weights whose absolute Z-score exceeds the threshold.
-    """
     stats = compute_weight_statistics(model)
     super_weights = {}
     for name, param in model.named_parameters():
@@ -36,14 +29,10 @@ def identify_super_weights(model, z_threshold=2.5):
                 super_weights[name] = indices
     return super_weights
 
-def main():
-    MODEL_NAME = "meta-llama/Llama-2-7b"  # update as needed
-    model = AutoModelForCausalLM.from_pretrained(MODEL_NAME)
+if __name__ == "__main__":
+    model = AutoModelForCausalLM.from_pretrained(MODEL_NAME, trust_remote_code=True)
     model.eval()
     super_weights = identify_super_weights(model, z_threshold=2.5)
     print("Identified super weights (Z-score > 2.5):")
     for layer, indices in super_weights.items():
         print(f"Layer: {layer}, Super weight indices: {indices}")
-
-if __name__ == "__main__":
-    main()
