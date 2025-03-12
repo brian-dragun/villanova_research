@@ -13,6 +13,15 @@ virtualenv venv
 
 pip install -r requirements.txt
 
+
+## ** HuggingFace Login **
+
+pip install -U "huggingface_hub[cli]"
+
+huggingface-cli login
+
+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
+
 ## **📌 Overview**
 This guide provides the correct order to run the scripts in your research workflow, along with a brief description of what each script does.
 
