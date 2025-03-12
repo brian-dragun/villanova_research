@@ -9,7 +9,9 @@ virtualenv venv
 .\venv\Scripts\activate
 
 
+## **Requirements**
 
+pip install -r requirements.txt
 
 ## **📌 Overview**
 This guide provides the correct order to run the scripts in your research workflow, along with a brief description of what each script does.
