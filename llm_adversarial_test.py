@@ -2,6 +2,7 @@ import torch
 import torch.nn.functional as F
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from config import MODEL_NAME
+from tqdm import tqdm
 
 def fgsm_attack(embeddings, epsilon, grad):
     """Generate adversarial perturbation using FGSM."""
@@ -15,9 +16,11 @@ def test_adversarial_robustness(model_name, epsilon=0.05, prompt="Once upon a ti
     model.to(device)
     model.eval()
     
+    # Tokenize the prompt and obtain input embeddings.
     inputs = tokenizer(prompt, return_tensors="pt").to(device)
-    inputs_embeds = model.get_input_embeddings()(inputs.input_ids)
-    inputs_embeds.requires_grad = True
+    # Ensure the embeddings are a leaf variable by detaching and cloning.
+    inputs_embeds = model.get_input_embeddings()(inputs.input_ids).detach().clone()
+    inputs_embeds.requires_grad_()  # This now makes it a leaf variable with gradients.
     
     outputs = model(inputs_embeds=inputs_embeds)
     loss = outputs.logits.mean()
@@ -35,4 +38,11 @@ def test_adversarial_robustness(model_name, epsilon=0.05, prompt="Once upon a ti
     return adv_text
 
 if __name__ == "__main__":
+    # For a single prompt, a progress bar isn't necessary.
+    # If you have multiple prompts, you could iterate like this:
+    #
+    # prompts = ["Once upon a time", "In a galaxy far, far away", ...]
+    # for p in tqdm(prompts, desc="Testing adversarial prompts"):
+    #     test_adversarial_robustness(MODEL_NAME, epsilon=0.05, prompt=p)
+    #
     test_adversarial_robustness(MODEL_NAME, epsilon=0.05, prompt="Once upon a time")

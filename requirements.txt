@@ -2,6 +2,7 @@ torch
 transformers
 datasets
 matplotlib
+protobuf
 huggingface_hub[cli]
 numpy<2.0
 accelerate>=0.26.0
