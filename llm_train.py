@@ -7,9 +7,12 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, Trainer, TrainingA
 from datasets import load_dataset, DownloadConfig
 from config import MODEL_NAME
 
+# Get the absolute path to the DeepSpeed config file.
+deepspeed_config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ds_config.json")
+
 def tokenize_function(examples, tokenizer):
     # Tokenize text with truncation, max_length, and padding to max_length.
-    output = tokenizer(examples["text"], truncation=True, max_length=128, padding="max_length")
+    output = tokenizer(examples["text"], truncation=True, max_length=64, padding="max_length")
     # For causal language modeling, set labels equal to input_ids.
     output["labels"] = output["input_ids"].copy()
     return output
@@ -40,16 +43,17 @@ def train_model(output_dir="data/llm_finetuned"):
     # Use a data collator designed for language modeling (mlm=False).
     data_collator = DataCollatorForLanguageModeling(tokenizer, mlm=False)
     
-    # Set up training arguments with a very low batch size and increased gradient accumulation.
+    # Set up training arguments with DeepSpeed integration.
     training_args = TrainingArguments(
         output_dir=output_dir,
         overwrite_output_dir=False,       # Do not overwrite existing checkpoints.
         num_train_epochs=1,               # Adjust epochs as needed.
         per_device_train_batch_size=1,    # Lower batch size to reduce memory usage.
-        gradient_accumulation_steps=4,      # Increase accumulation steps further if needed.
+        gradient_accumulation_steps=8,      # Increase to simulate a larger effective batch size.
         fp16=True,                        # Enable mixed precision training.
         save_steps=500,
         save_total_limit=2,
+        deepspeed=deepspeed_config_path  # Provide the absolute path to the DeepSpeed config file.
     )
     
     trainer = Trainer(
@@ -59,7 +63,7 @@ def train_model(output_dir="data/llm_finetuned"):
         data_collator=data_collator,
     )
     
-    # Clear cache before starting training to help with memory fragmentation.
+    # Clear cache again before starting training.
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
     
