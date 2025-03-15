@@ -1,26 +1,31 @@
 import torch
 import torch.autograd as autograd
 import matplotlib.pyplot as plt
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoTokenizer
+from config import MODEL_NAME
 
-MODEL_NAME = "meta-llama/Llama-2-7b"  # update as needed
-
-def compute_hessian_sensitivity(model, input_text):
+def compute_hessian_sensitivity(model, input_text, device=torch.device("cpu")):
     """
     Computes Hessian-based sensitivity scores for LLM weights given an input text.
+    Uses the slow tokenizer (use_fast=False) to avoid tiktoken conversion issues.
     """
     model.eval()
-    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+    # Force slow tokenizer to avoid tiktoken conversion issues.
+    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, use_fast=False)
     inputs = tokenizer(input_text, return_tensors="pt")
+    inputs = {k: v.to(device) for k, v in inputs.items()}
+    
     outputs = model(**inputs)
-    # Use model loss if available; otherwise, a mean over logits as a proxy
+    # Use model loss if available; otherwise, use the mean of logits as a proxy.
     loss = outputs.loss if hasattr(outputs, "loss") and outputs.loss is not None else outputs.logits.mean()
     
+    # Compute first-order gradients.
     grads = autograd.grad(loss, model.parameters(), create_graph=True)
     
     sensitivity_scores = {}
     for (name, param), grad in zip(model.named_parameters(), grads):
         if grad is not None:
+            # Compute the diagonal of the Hessian for the parameter.
             hessian_diag = autograd.grad(grad, param, grad_outputs=torch.ones_like(grad), retain_graph=True)[0]
             sensitivity_scores[name] = hessian_diag.abs().sum().item()
     return sensitivity_scores
@@ -38,10 +43,13 @@ def plot_sensitivity(sensitivity_scores):
     plt.show()
 
 if __name__ == "__main__":
-    model = AutoModelForCausalLM.from_pretrained(MODEL_NAME)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    from transformers import AutoModelForCausalLM
+    model = AutoModelForCausalLM.from_pretrained(MODEL_NAME, trust_remote_code=True)
+    model.to(device)
     test_text = "The quick brown fox jumps over the lazy dog."
-    scores = compute_hessian_sensitivity(model, test_text)
+    sensitivity_scores = compute_hessian_sensitivity(model, test_text, device=device)
     print("Hessian Sensitivity Scores:")
-    for name, score in scores.items():
+    for name, score in sensitivity_scores.items():
         print(f"{name}: {score:.4f}")
-    plot_sensitivity(scores)
+    plot_sensitivity(sensitivity_scores)
