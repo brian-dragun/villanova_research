@@ -2,6 +2,8 @@ torch
 safetensors
 transformers
 datasets
+tf-keras
+blobfile
 matplotlib
 tqdm
 protobuf
