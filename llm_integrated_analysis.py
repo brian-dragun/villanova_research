@@ -1,23 +1,45 @@
 import os
-# Disable flash (efficient) attention to avoid derivative issues.
+# Set these environment variables as early as possible.
 os.environ["TORCH_USE_FLASH_ATTENTION"] = "0"
+os.environ["TORCH_USE_EFFICIENT_ATTENTION"] = "0"
+os.environ["LLAMA_DISABLE_FLASH_ATTENTION"] = "1"  # Attempt to force legacy attention in Llama models
 
 import torch
 import matplotlib.pyplot as plt
-from transformers import AutoModelForCausalLM
+from transformers import AutoConfig, AutoModelForCausalLM
 from llm_analyze_sensitivity import compute_hessian_sensitivity, plot_sensitivity
 from llm_super_weights import identify_super_weights
 from config import MODEL_NAME
 from tqdm import tqdm
 
 def run_integrated_analysis(input_text="The quick brown fox jumps over the lazy dog."):
+    # First, try to run on GPU.
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = AutoModelForCausalLM.from_pretrained(MODEL_NAME, trust_remote_code=True)
+    
+    # Load model configuration and force legacy attention if available.
+    config = AutoConfig.from_pretrained(MODEL_NAME)
+    if hasattr(config, "use_flash_attn"):
+        config.use_flash_attn = False
+    # Optionally, print the config to verify.
+    # print("Model config:", config)
+    
+    # Load model with modified config.
+    model = AutoModelForCausalLM.from_pretrained(MODEL_NAME, config=config, trust_remote_code=True)
     model.to(device)
     model.eval()
     
-    print("Computing Hessian-based sensitivity scores...")
-    sensitivity_scores = compute_hessian_sensitivity(model, input_text, device=device)
+    print("Computing Hessian-based sensitivity scores on device:", device)
+    try:
+        sensitivity_scores = compute_hessian_sensitivity(model, input_text, device=device)
+    except RuntimeError as e:
+        print("Error during integrated analysis on device", device, ":", e)
+        if device.type == "cuda":
+            print("Falling back to CPU for integrated analysis...")
+            device = torch.device("cpu")
+            model.to(device)
+            sensitivity_scores = compute_hessian_sensitivity(model, input_text, device=device)
+        else:
+            raise e
     
     print("Identifying super weights (Z-score > 2.5)...")
     super_weights = identify_super_weights(model, z_threshold=2.5)

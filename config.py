@@ -35,4 +35,5 @@ GPU_MODEL_PATHS = {
 MODEL_PATHS = GPU_MODEL_PATHS if torch.cuda.is_available() else CPU_MODEL_PATHS
 
 # Example model name (change this as needed)
-MODEL_NAME = "gpt2"  # or "meta-llama/Llama-2-7b-hf" if you have access
+MODEL_NAME = "meta-llama/Llama-2-7b-hf"
+# MODEL_NAME = "gpt2"
