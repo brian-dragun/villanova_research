@@ -1,8 +1,11 @@
 torch
+safetensors
 transformers
 datasets
 matplotlib
+tqdm
 protobuf
+tiktoken
 huggingface_hub[cli]
 numpy<2.0
 accelerate>=0.26.0
