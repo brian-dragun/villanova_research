@@ -34,6 +34,21 @@ GPU_MODEL_PATHS = {
 # Dynamically choose the model paths based on whether a GPU is available
 MODEL_PATHS = GPU_MODEL_PATHS if torch.cuda.is_available() else CPU_MODEL_PATHS
 
-# Example model name (change this as needed)
-MODEL_NAME = "meta-llama/Llama-2-7b-hf"
-# MODEL_NAME = "gpt2"
+# Define multiple model options
+MODEL_OPTIONS = {
+    "llama": "meta-llama/Llama-2-7b-hf",
+    "gpt2": "gpt2",
+    "distilgpt2": "distilgpt2",
+    "gptneo125m": "EleutherAI/gpt-neo-125M",
+    "opt125m": "facebook/opt-125m",
+    "dialoGPT": "microsoft/DialoGPT-small",
+    "t5_small": "t5-small",          # Or "google/flan-t5-small" for instruction-tuned
+    "distilbart": "sshleifer/distilbart-cnn-12-6",
+    "blenderbot": "facebook/blenderbot-90M"
+}
+
+# Select the model you want to use.
+# For example, to use the resource-friendly GPT-Neo 125M:
+MODEL_NAME = MODEL_OPTIONS["gptneo125m"]
+# You can switch this to any key in MODEL_OPTIONS, like:
+# MODEL_NAME = MODEL_OPTIONS["llama"]
