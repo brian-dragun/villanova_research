@@ -10,6 +10,11 @@ git config --global user.name "Brian Dragun"
 echo "Installing requirements..."
 pip install -r requirements.txt
 
+pip install pybind11
+
+pip uninstall numpy
+pip install numpy<2.0
+
 # HuggingFace Login
 echo "Logging into Hugging Face..."
 # Automatically provide the token and answer "y" for git credential prompt.
