@@ -42,7 +42,7 @@ def main():
     
     # Step 6: Integrated Sensitivity and Super Weight Analysis
     print("\n🔍 **Step 6: Integrated Sensitivity and Super Weight Analysis**")
-    run_integrated_analysis()
+    run_integrated_analysis(input_text=TEST_PROMPT)
     
     # Step 7: Bit-level Sensitivity Analysis and Ablation Study
     print("\n🔍 **Step 7: Bit-level Sensitivity Analysis and Ablation Study**")

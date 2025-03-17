@@ -9,21 +9,14 @@ import matplotlib.pyplot as plt
 from transformers import AutoConfig, AutoModelForCausalLM
 from llm_analyze_sensitivity import compute_hessian_sensitivity, plot_sensitivity
 from llm_super_weights import identify_super_weights
-from config import MODEL_NAME
+from config import MODEL_NAME, TEST_PROMPT
 from tqdm import tqdm
 
-def run_integrated_analysis(input_text="The quick brown fox jumps over the lazy dog."):
-    # First, try to run on GPU.
+def run_integrated_analysis(input_text=TEST_PROMPT):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    
-    # Load model configuration and force legacy attention if available.
     config = AutoConfig.from_pretrained(MODEL_NAME)
     if hasattr(config, "use_flash_attn"):
         config.use_flash_attn = False
-    # Optionally, print the config to verify.
-    # print("Model config:", config)
-    
-    # Load model with modified config.
     model = AutoModelForCausalLM.from_pretrained(MODEL_NAME, config=config, trust_remote_code=True)
     model.to(device)
     model.eval()

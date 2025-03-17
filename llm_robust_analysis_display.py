@@ -4,13 +4,14 @@ import torch.autograd as autograd
 import matplotlib.pyplot as plt
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import math
-from config import TEST_PROMPT, EPSILON
+from llm_adversarial_test import test_adversarial_robustness
+from config import MODEL_NAME, TEST_PROMPT, EPSILON
 
 def run_robust_analysis_display():
     print("Running robust analysis display...")
     
-    # Assume you generate adversarial text from a PGD attack:
-    adv_text = "Updates the Game Game"  # example adversarial text
+    # Dynamically generate adversarial text using the FGSM attack defined in llm_adversarial_test.py.
+    adv_text = test_adversarial_robustness(MODEL_NAME, epsilon=EPSILON, prompt=TEST_PROMPT)
     print("\nAdversarial generated text (PGD attack):")
     print(f"  {adv_text}\n")
     
@@ -115,7 +116,7 @@ def plot_token_distribution(outputs, token_idx, tokenizer, top_k=10):
 
 def main():
     # Select a model (using GPT-Neo 125M in this example)
-    model_name = "EleutherAI/gpt-neo-125M"
+    model_name = MODEL_NAME
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("Using model:", model_name)
     print("Device:", device)

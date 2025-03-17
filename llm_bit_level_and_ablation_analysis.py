@@ -4,7 +4,7 @@ import math
 import torch.nn.functional as F
 import torch.autograd as autograd
 from transformers import AutoModelForCausalLM, AutoTokenizer
-from config import TEST_PROMPT
+from config import MODEL_NAME, TEST_PROMPT
 
 # --- Bit-level Sensitivity Analysis Functions ---
 
@@ -105,7 +105,7 @@ def ablation_study_param(model, evaluate_fn, param, prune_fraction=0.01):
 
 def main():
     # Use GPT-Neo 125M for this demo
-    model_name = "EleutherAI/gpt-neo-125M"
+    model_name = MODEL_NAME
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("Using model:", model_name)
     print("Device:", device)
