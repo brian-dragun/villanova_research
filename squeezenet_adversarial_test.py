@@ -4,6 +4,8 @@ import torchvision
 import torchvision.transforms as transforms
 import torchvision.models as models
 from torch.utils.data import DataLoader
+from config import EPSILON
+
 
 # Load CIFAR-10 dataset
 transform = transforms.Compose([
@@ -19,7 +21,7 @@ def fgsm_attack(image, epsilon, gradient):
     perturbation = epsilon * gradient.sign()
     return torch.clamp(image + perturbation, -1, 1)  # Ensure valid image range
 
-def test_adversarial_robustness(model_path, epsilon=0.05):
+def test_adversarial_robustness(model_path, epsilon=EPSILON):
     """Evaluates model robustness against adversarial attacks (FGSM)."""
     
     # Load model architecture

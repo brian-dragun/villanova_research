@@ -4,6 +4,7 @@ import math
 import torch.nn.functional as F
 import torch.autograd as autograd
 from transformers import AutoModelForCausalLM, AutoTokenizer
+from config import TEST_PROMPT
 
 # --- Bit-level Sensitivity Analysis Functions ---
 
@@ -67,7 +68,7 @@ def bit_sensitivity_analysis_for_param(model, inputs, loss_fn, param, element_in
 
 # --- Ablation Study Functions ---
 
-def evaluate_model(model, tokenizer, prompt="Once upon a time"):
+def evaluate_model(model, tokenizer, prompt=TEST_PROMPT):
     """
     Evaluate the model on a prompt and return the perplexity.
     (This is a rough metric for demonstration.)
@@ -114,7 +115,7 @@ def main():
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     
     # Prepare a prompt and inputs
-    prompt = "Once upon a time"
+    prompt = TEST_PROMPT
     inputs = tokenizer(prompt, return_tensors="pt").to(device)
     
     # --- Bit-level Sensitivity Analysis ---
@@ -131,7 +132,7 @@ def main():
     
     # --- Ablation Study ---
     # Define an evaluation function that returns perplexity on a fixed prompt.
-    eval_fn = lambda m: evaluate_model(m, tokenizer, prompt="Once upon a time")
+    eval_fn = lambda m: evaluate_model(m, tokenizer, prompt=TEST_PROMPT)
     baseline_quality = eval_fn(model)
     print("\nBaseline model perplexity:", baseline_quality)
     

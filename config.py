@@ -47,3 +47,8 @@ GPU_MODEL_PATHS = {
 
 # Dynamically choose the model paths based on whether a GPU is available
 MODEL_PATHS = GPU_MODEL_PATHS if torch.cuda.is_available() else CPU_MODEL_PATHS
+
+# Test prompt for your experiments
+EPSILON = 0.05
+TEST_PROMPT = "In a galaxy far, far away"
+

@@ -1,12 +1,13 @@
 import torch
 import torch.nn.functional as F
 from transformers import AutoModelForCausalLM, AutoTokenizer
+from config import TEST_PROMPT
 
 def fgsm_attack(embeddings, epsilon, grad):
     perturbation = epsilon * grad.sign()
     return embeddings + perturbation
 
-def test_adversarial_robustness(model_name, epsilon=0.05, prompt="Once upon a time"):
+def test_adversarial_robustness(model_name, epsilon=EPSILON, prompt=TEST_PROMPT):
     """
     Generates adversarial examples by perturbing input embeddings using FGSM and compares generated text.
     """
@@ -39,4 +40,4 @@ def test_adversarial_robustness(model_name, epsilon=0.05, prompt="Once upon a ti
 
 if __name__ == "__main__":
     MODEL_NAME = "meta-llama/Llama-2-7b"  # update as needed
-    test_adversarial_robustness(MODEL_NAME, epsilon=0.05, prompt="Once upon a time")
+    test_adversarial_robustness(MODEL_NAME, epsilon=EPSILON, prompt=TEST_PROMPT)

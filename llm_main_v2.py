@@ -1,5 +1,5 @@
 import os
-from config import MODEL_NAME
+from config import MODEL_NAME, TEST_PROMPT, EPSILON
 from llm_train import train_model
 from llm_prune_model import prune_model
 from llm_evaluate_models import evaluate_model
@@ -42,7 +42,7 @@ def main():
     
     # Step 5: Adversarial testing (FGSM attack on embeddings)
     print("\n🛡 **Step 5: Adversarial Testing (FGSM Attack on Embeddings)**")
-    test_adversarial_robustness(MODEL_NAME, epsilon=0.05, prompt="Once upon a time")
+    test_adversarial_robustness(MODEL_NAME, epsilon=EPSILON, prompt=TEST_PROMPT)
     
     # Step 6: Integrated Sensitivity and Super Weight Analysis
     print("\n🔍 **Step 6: Integrated Sensitivity and Super Weight Analysis**")

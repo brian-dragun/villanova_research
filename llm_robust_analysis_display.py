@@ -4,6 +4,7 @@ import torch.autograd as autograd
 import matplotlib.pyplot as plt
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import math
+from config import TEST_PROMPT, EPSILON
 
 def run_robust_analysis_display():
     print("Running robust analysis display...")
@@ -31,7 +32,7 @@ def run_robust_analysis_display():
     plt.savefig("llm_token_distribution.png")
     print("Robust analysis display complete.\n")
 
-def pgd_attack(model, inputs_embeds, epsilon=0.05, alpha=0.01, num_iter=40):
+def pgd_attack(model, inputs_embeds, epsilon=EPSILON, alpha=0.01, num_iter=40):
     """
     Perform a PGD (Projected Gradient Descent) attack on the input embeddings.
     """
@@ -124,14 +125,14 @@ def main():
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     
     ### PGD Attack Demonstration ###
-    prompt = "Once upon a time"
+    prompt = TEST_PROMPT
     inputs = tokenizer(prompt, return_tensors="pt").to(device)
     # Get input embeddings and ensure they are leaf tensors
     embeddings = model.get_input_embeddings()(inputs.input_ids).detach().clone()
     embeddings.requires_grad = True
     
     # Apply PGD attack (using fewer iterations for a quick demo)
-    adv_embeds = pgd_attack(model, embeddings, epsilon=0.05, alpha=0.01, num_iter=10)
+    adv_embeds = pgd_attack(model, embeddings, epsilon=EPSILON, alpha=0.01, num_iter=10)
     
     # Get adversarial outputs and decode to text
     adv_outputs = model(inputs_embeds=adv_embeds)

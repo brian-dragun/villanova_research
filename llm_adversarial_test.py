@@ -1,7 +1,7 @@
 import torch
 import torch.nn.functional as F
 from transformers import AutoModelForCausalLM, AutoTokenizer
-from config import MODEL_NAME
+from config import MODEL_NAME, TEST_PROMPT, EPSILON
 from tqdm import tqdm
 
 def fgsm_attack(embeddings, epsilon, grad):
@@ -9,7 +9,7 @@ def fgsm_attack(embeddings, epsilon, grad):
     perturbation = epsilon * grad.sign()
     return embeddings + perturbation
 
-def test_adversarial_robustness(model_name, epsilon=0.05, prompt="Once upon a time"):
+def test_adversarial_robustness(model_name, epsilon=EPSILON, prompt=TEST_PROMPT):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = AutoModelForCausalLM.from_pretrained(model_name, trust_remote_code=True)
     tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
@@ -45,4 +45,4 @@ if __name__ == "__main__":
     # for p in tqdm(prompts, desc="Testing adversarial prompts"):
     #     test_adversarial_robustness(MODEL_NAME, epsilon=0.05, prompt=p)
     #
-    test_adversarial_robustness(MODEL_NAME, epsilon=0.05, prompt="Once upon a time")
+    test_adversarial_robustness(MODEL_NAME, epsilon=EPSILON, prompt=TEST_PROMPT)

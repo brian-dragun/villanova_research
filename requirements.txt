@@ -12,4 +12,5 @@ deepspeed
 huggingface_hub[cli]
 pybind11
 mpi4py
+colorama
 accelerate>=0.26.0

@@ -3,13 +3,15 @@ import matplotlib.pyplot as plt
 from transformers import AutoModelForCausalLM
 from llm_analyze_sensitivity import compute_hessian_sensitivity, plot_sensitivity
 from llm_super_weights import identify_super_weights
+from config import MODEL_NAME, TEST_PROMPT
 
-def run_integrated_analysis(input_text="The quick brown fox jumps over the lazy dog."):
-    MODEL_NAME = "meta-llama/Llama-2-7b"  # update as needed
-    model = AutoModelForCausalLM.from_pretrained(MODEL_NAME)
+def run_integrated_analysis(input_text=TEST_PROMPT):
+    # Use the model from config rather than hard-coding one here.
+    model = AutoModelForCausalLM.from_pretrained(MODEL_NAME, trust_remote_code=True)
     model.eval()
     
-    print("Computing Hessian-based sensitivity scores...")
+    print("Computing Hessian-based sensitivity scores using prompt:")
+    print(f"  {input_text}\n")
     sensitivity_scores = compute_hessian_sensitivity(model, input_text)
     
     print("Identifying super weights (Z-score > 2.5)...")

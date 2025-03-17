@@ -5,6 +5,8 @@ from llm_evaluate_models import evaluate_model
 from llm_robustness_test import apply_robustness_test
 from llm_adversarial_test import test_adversarial_robustness
 from llm_integrated_analysis import run_integrated_analysis
+from config import EPSILON
+
 
 def main():
     model_paths = {
@@ -36,7 +38,7 @@ def main():
     
     # Step 5: Adversarial testing (FGSM attack on embeddings)
     print("\n🛡 **Step 5: Adversarial Testing (FGSM Attack on Embeddings)**")
-    test_adversarial_robustness("meta-llama/Llama-2-7b", epsilon=0.05, prompt="Once upon a time")
+    test_adversarial_robustness("meta-llama/Llama-2-7b", epsilon=EPSILON, prompt=TEST_PROMPT)
     
     # Step 6: Integrated Sensitivity and Super Weight Analysis
     print("\n🔍 **Step 6: Integrated Sensitivity and Super Weight Analysis**")

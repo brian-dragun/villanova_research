@@ -1,18 +1,19 @@
 import os
-from config import MODEL_PATHS, MODEL_NAME
+from config import MODEL_PATHS, MODEL_NAME, TEST_PROMPT, EPSILON
 from llm_train import train_model
 from llm_prune_model import prune_model
 from llm_evaluate_models import evaluate_model
 from llm_robustness_test import apply_robustness_test
 from llm_adversarial_test import test_adversarial_robustness
 from llm_integrated_analysis import run_integrated_analysis
-
-# Import the new analysis routines.
 from llm_bit_level_and_ablation_analysis import run_bit_level_and_ablation_analysis
 from llm_robust_analysis_display import run_robust_analysis_display
+from colorama import Fore, Style
 
 def main():
     print("\nUsing model paths:", MODEL_PATHS)
+    print("\nEpsilon:", Fore.RED + str(EPSILON) + Style.RESET_ALL)
+    print("Prompt:", Fore.RED + TEST_PROMPT + Style.RESET_ALL)
     
     # Step 1: Fine-tune or load the original LLM model
     print("\n🚀 **Step 1: Fine-tuning the LLM Model**")
@@ -37,7 +38,7 @@ def main():
     
     # Step 5: Adversarial testing (FGSM attack on embeddings)
     print("\n🛡 **Step 5: Adversarial Testing (FGSM Attack on Embeddings)**")
-    test_adversarial_robustness(MODEL_NAME, epsilon=0.05, prompt="Once upon a time")
+    test_adversarial_robustness(MODEL_NAME, epsilon=EPSILON, prompt=TEST_PROMPT)
     
     # Step 6: Integrated Sensitivity and Super Weight Analysis
     print("\n🔍 **Step 6: Integrated Sensitivity and Super Weight Analysis**")
