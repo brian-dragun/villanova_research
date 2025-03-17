@@ -8,6 +8,8 @@ virtualenv venv
 
 .\venv\Scripts\activate
 
+## GIT SETUP
+git config --global credential.helper store
 
 ## **Requirements**
 
