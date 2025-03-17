@@ -33,9 +33,9 @@ def test_adversarial_robustness(model_name, epsilon=EPSILON, prompt=TEST_PROMPT)
     adv_outputs = model(inputs_embeds=adv_embeds)
     adv_text = tokenizer.decode(adv_outputs.logits.argmax(dim=-1)[0])
     
-    print(f"Adversarial generated text at epsilon={epsilon}:")
-    print(adv_text)
-    return adv_text
+    #print(f"Adversarial generated text at epsilon={epsilon}:")
+    #print(adv_text)
+    #return adv_text
 
 if __name__ == "__main__":
     # For a single prompt, a progress bar isn't necessary.
