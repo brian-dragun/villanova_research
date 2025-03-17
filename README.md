@@ -10,6 +10,8 @@ virtualenv venv
 
 ## GIT SETUP
 git config --global credential.helper store
+git config --global user.email "bdragun@villanova.edu"
+git config --global user.name "Brian Dragun"
 
 ## **Requirements**
 
