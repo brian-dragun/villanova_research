@@ -10,5 +10,6 @@ protobuf
 tiktoken
 deepspeed
 huggingface_hub[cli]
-numpy<2.0
+pybind11
+mpi4py
 accelerate>=0.26.0
