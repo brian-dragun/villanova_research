@@ -7,12 +7,15 @@ from llm_robustness_test import apply_robustness_test
 from llm_adversarial_test import test_adversarial_robustness
 from llm_integrated_analysis import run_integrated_analysis
 
+# Import the new analysis routines.
+from llm_bit_level_and_ablation_analysis import run_bit_level_and_ablation_analysis
+from llm_robust_analysis_display import run_robust_analysis_display
+
 def main():
     print("\nUsing model paths:", MODEL_PATHS)
     
     # Step 1: Fine-tune or load the original LLM model
     print("\n🚀 **Step 1: Fine-tuning the LLM Model**")
-    # Check if the fine-tuned model exists by looking for a key file in the directory.
     if not os.path.exists(os.path.join(MODEL_PATHS["finetuned"], "model.safetensors")):
         train_model(MODEL_PATHS["finetuned"])
     else:
@@ -39,6 +42,14 @@ def main():
     # Step 6: Integrated Sensitivity and Super Weight Analysis
     print("\n🔍 **Step 6: Integrated Sensitivity and Super Weight Analysis**")
     run_integrated_analysis()
+    
+    # Step 7: Bit-level Sensitivity Analysis and Ablation Study
+    print("\n🔍 **Step 7: Bit-level Sensitivity Analysis and Ablation Study**")
+    run_bit_level_and_ablation_analysis()
+    
+    # Step 8: Robust Analysis Display (PGD attack + token distribution + Fisher info)
+    print("\n🔍 **Step 8: Robust Analysis Display**")
+    run_robust_analysis_display()
     
     print("\n✅ **All steps completed successfully!**")
 
