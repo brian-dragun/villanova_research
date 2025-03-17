@@ -15,6 +15,22 @@ SQUEEZENET_PATHS = {
     "pruned": os.path.join(DATA_DIR, "squeezenet_pruned.pth")
 }
 
+# Define CPU model paths and GPU model paths
+CPU_MODEL_PATHS = {
+    "finetuned": os.path.join(DATA_DIR, "cpu_llm_finetuned"),
+    "pruned": os.path.join(DATA_DIR, "cpu_llm_pruned.pth"),
+    "noisy": os.path.join(DATA_DIR, "cpu_llm_noisy.pth")
+}
+
+GPU_MODEL_PATHS = {
+    "finetuned": os.path.join(DATA_DIR, "gpu_llm_finetuned"),
+    "pruned": os.path.join(DATA_DIR, "gpu_llm_pruned.pth"),
+    "noisy": os.path.join(DATA_DIR, "gpu_llm_noisy.pth")
+}
+
+# Dynamically choose the model paths based on whether a GPU is available
+MODEL_PATHS = GPU_MODEL_PATHS if torch.cuda.is_available() else CPU_MODEL_PATHS
+
 # Define multiple model options
 MODEL_OPTIONS = {
     "llama": "meta-llama/Llama-2-7b-hf",
@@ -28,22 +44,8 @@ MODEL_OPTIONS = {
     "blenderbot": "facebook/blenderbot-90M"
 }
 
-# Select the model key to use; change this key to switch models
-MODEL_KEY = "gptneo125m"
-MODEL_NAME = MODEL_OPTIONS[MODEL_KEY]
-
-# Define CPU model paths and GPU model paths that include the model key
-CPU_MODEL_PATHS = {
-    "finetuned": os.path.join(DATA_DIR, f"cpu_llm_finetuned_{MODEL_KEY}"),
-    "pruned": os.path.join(DATA_DIR, f"cpu_llm_pruned_{MODEL_KEY}.pth"),
-    "noisy": os.path.join(DATA_DIR, f"cpu_llm_noisy_{MODEL_KEY}.pth")
-}
-
-GPU_MODEL_PATHS = {
-    "finetuned": os.path.join(DATA_DIR, f"gpu_llm_finetuned_{MODEL_KEY}"),
-    "pruned": os.path.join(DATA_DIR, f"gpu_llm_pruned_{MODEL_KEY}.pth"),
-    "noisy": os.path.join(DATA_DIR, f"gpu_llm_noisy_{MODEL_KEY}.pth")
-}
-
-# Dynamically choose the model paths based on whether a GPU is available
-MODEL_PATHS = GPU_MODEL_PATHS if torch.cuda.is_available() else CPU_MODEL_PATHS
+# Select the model you want to use.
+# For example, to use the resource-friendly GPT-Neo 125M:
+MODEL_NAME = MODEL_OPTIONS["gptneo125m"]
+# You can switch this to any key in MODEL_OPTIONS, like:
+# MODEL_NAME = MODEL_OPTIONS["llama"]
