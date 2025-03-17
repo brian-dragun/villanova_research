@@ -6,21 +6,7 @@ import torch.autograd as autograd
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from config import MODEL_NAME, TEST_PROMPT
 
-# --- Bit-level Sensitivity Analysis Functions ---
-
-def run_bit_level_and_ablation_analysis():
-    print("Running bit-level sensitivity analysis and ablation study...")
-    # Assume you compute bit_sensitivity as a dict and ablation results.
-    bit_sensitivity = {24: 0.000036, 25: -0.000009, 30: 1e+37, 31: -0.000019}
-    print("Bit-level sensitivity results:")
-    for bit, delta_loss in bit_sensitivity.items():
-        print(f"  Bit position {bit}: Loss change = {delta_loss:.6f}")
-    
-    baseline_perplexity = 17.70
-    ablated_perplexity = 1.3998614507949902e+13
-    print(f"\nBaseline model perplexity: {baseline_perplexity}")
-    print(f"Model perplexity after ablation: {ablated_perplexity}\n")
-
+# --- Helper Function to Flip a Bit ---
 def flip_bit(tensor, bit_position):
     """
     Flip the bit at the given position for a float32 tensor.
@@ -35,15 +21,18 @@ def flip_bit(tensor, bit_position):
     flipped_np_tensor = flipped_int_tensor.view(np.float32)
     return torch.tensor(flipped_np_tensor, device=tensor.device)
 
+# --- Bit-level Sensitivity Analysis Functions ---
+
 def bit_sensitivity_analysis_for_param(model, inputs, loss_fn, param, element_index=0, bit_positions=range(24, 32)):
     """
     For a given parameter (flattened) and a chosen element (by index),
     flip bits at positions specified in bit_positions and record the change in loss.
     Returns a dictionary mapping bit positions to the loss change.
     """
-    flat_param = param.view(-1)
+    # Use param.data to avoid modifying a leaf tensor that requires grad.
+    flat_param = param.data.view(-1)
     # Get the original value of the chosen element
-    original_value = flat_param[element_index].detach().clone()
+    original_value = flat_param[element_index].clone()
     
     # Get baseline loss
     outputs = model(**inputs)
@@ -58,7 +47,7 @@ def bit_sensitivity_analysis_for_param(model, inputs, loss_fn, param, element_in
             backup = original_value.clone()
             flat_param[element_index] = perturbed_value
         outputs_perturbed = model(**inputs)
-        perturbed_loss = loss_fn(outputs_perturbed.logits.view(-1, outputs_perturbed.logits.size(-1)), 
+        perturbed_loss = loss_fn(outputs_perturbed.logits.view(-1, outputs_perturbed.logits.size(-1)),
                                   inputs["input_ids"].view(-1))
         sensitivity[bit] = (perturbed_loss - baseline_loss).item()
         # Restore the original value in a no_grad block
@@ -103,45 +92,38 @@ def ablation_study_param(model, evaluate_fn, param, prune_fraction=0.01):
 
 # --- Main Demonstration ---
 
-def main():
-    # Use GPT-Neo 125M for this demo
-    model_name = MODEL_NAME
+def run_bit_level_and_ablation_analysis(prompt=TEST_PROMPT):
+    print("Running bit-level sensitivity analysis and ablation study with prompt:")
+    print(f"  {prompt}\n")
+    
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print("Using model:", model_name)
-    print("Device:", device)
+    model = AutoModelForCausalLM.from_pretrained(MODEL_NAME).to(device)
+    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
     
-    model = AutoModelForCausalLM.from_pretrained(model_name)
-    model.to(device)
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    
-    # Prepare a prompt and inputs
-    prompt = TEST_PROMPT
     inputs = tokenizer(prompt, return_tensors="pt").to(device)
-    
-    # --- Bit-level Sensitivity Analysis ---
-    # For demonstration, we select one parameter; here we choose the input embedding weights.
+    # Select a parameter for analysis, e.g., input embeddings
     param = model.get_input_embeddings().weight  # shape: [vocab_size, hidden_size]
+    element_index = 0  # Representative element
     
-    # For demonstration, choose one element from the flattened parameter vector
-    element_index = 0  # You might select an index corresponding to a particular token or feature.
-    bit_sensitivity = bit_sensitivity_analysis_for_param(model, inputs, torch.nn.CrossEntropyLoss(), param, element_index)
+    loss_fn = torch.nn.CrossEntropyLoss()
+    
+    sensitivity = bit_sensitivity_analysis_for_param(model, inputs, loss_fn, param, element_index)
     
     print("\nBit-level sensitivity for parameter element at index", element_index)
-    for bit, delta_loss in bit_sensitivity.items():
-        print(f"Bit position {bit}: Loss change = {delta_loss:.6f}")
+    for bit, delta_loss in sensitivity.items():
+        print(f"  Bit position {bit}: Loss change = {delta_loss:.6f}")
     
-    # --- Ablation Study ---
-    # Define an evaluation function that returns perplexity on a fixed prompt.
-    eval_fn = lambda m: evaluate_model(m, tokenizer, prompt=TEST_PROMPT)
+    # Ablation Study
+    eval_fn = lambda m: evaluate_model(m, tokenizer, prompt=prompt)
     baseline_quality = eval_fn(model)
     print("\nBaseline model perplexity:", baseline_quality)
     
-    # Choose a parameter for ablation study; for instance, the same input embedding weight.
-    prune_fraction = 0.01  # Prune 1% of the weights from the parameter.
+    prune_fraction = 0.01
     quality_after_ablation = ablation_study_param(model, eval_fn, param, prune_fraction)
-    
-    print(f"Model perplexity after ablating top {prune_fraction*100:.1f}% of sensitive weights in the parameter: {quality_after_ablation}")
+    print(f"Model perplexity after ablating top {prune_fraction*100:.1f}% of sensitive weights: {quality_after_ablation}")
+
+def main():
+    run_bit_level_and_ablation_analysis()
 
 if __name__ == "__main__":
-    # If you want to allow direct execution of this file:
-    run_bit_level_and_ablation_analysis()
+    main()

@@ -44,9 +44,9 @@ def main():
     print("\n🔍 **Step 6: Integrated Sensitivity and Super Weight Analysis**")
     run_integrated_analysis(input_text=TEST_PROMPT)
     
-    # Step 7: Bit-level Sensitivity Analysis and Ablation Study
+    # Step 7: Bit-level Sensitivity Analysis and Ablation Study (Updated to be prompt-dependent)
     print("\n🔍 **Step 7: Bit-level Sensitivity Analysis and Ablation Study**")
-    run_bit_level_and_ablation_analysis()
+    run_bit_level_and_ablation_analysis(prompt=TEST_PROMPT)
     
     # Step 8: Robust Analysis Display (PGD attack + token distribution + Fisher info)
     print("\n🔍 **Step 8: Robust Analysis Display**")
