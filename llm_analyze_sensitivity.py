@@ -26,8 +26,14 @@ def compute_hessian_sensitivity(model, input_text, device=torch.device("cpu")):
     for (name, param), grad in zip(model.named_parameters(), grads):
         if grad is not None:
             # Compute the diagonal of the Hessian for the parameter.
-            hessian_diag = autograd.grad(grad, param, grad_outputs=torch.ones_like(grad), retain_graph=True)[0]
-            sensitivity_scores[name] = hessian_diag.abs().sum().item()
+            hessian_diag = autograd.grad(
+                grad, param, 
+                grad_outputs=torch.ones_like(grad), 
+                retain_graph=True, 
+                allow_unused=True
+            )[0]
+            if hessian_diag is not None:
+                sensitivity_scores[name] = hessian_diag.abs().sum().item()
     return sensitivity_scores
 
 def plot_sensitivity(sensitivity_scores):
