@@ -2,7 +2,7 @@ import torch
 import torch.autograd as autograd
 import matplotlib.pyplot as plt
 from transformers import AutoTokenizer
-from config import MODEL_NAME
+from config import MODEL_NAME, TEST_PROMPT
 
 def compute_hessian_sensitivity(model, input_text, device=torch.device("cpu")):
     """
@@ -53,7 +53,7 @@ if __name__ == "__main__":
     from transformers import AutoModelForCausalLM
     model = AutoModelForCausalLM.from_pretrained(MODEL_NAME, trust_remote_code=True)
     model.to(device)
-    test_text = "The quick brown fox jumps over the lazy dog."
+    test_text = TEST_PROMPT
     sensitivity_scores = compute_hessian_sensitivity(model, test_text, device=device)
     print("Hessian Sensitivity Scores:")
     for name, score in sensitivity_scores.items():
