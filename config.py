@@ -17,7 +17,7 @@ SQUEEZENET_PATHS = {
 
 # Define multiple model options
 MODEL_OPTIONS = {
-    "llama": "meta-llama/Llama-2-7b-hf",
+    "llama27bhf": "meta-llama/Llama-2-7b-hf",
     "gpt2": "gpt2",
     "distilgpt2": "distilgpt2",
     "gptneo125m": "EleutherAI/gpt-neo-125M",
@@ -29,7 +29,8 @@ MODEL_OPTIONS = {
 }
 
 # Select the model key to use; change this key to switch models
-MODEL_KEY = "gptneo125m"
+#MODEL_KEY = "gptneo125m"
+MODEL_KEY = "llama27bhf"
 MODEL_NAME = MODEL_OPTIONS[MODEL_KEY]
 
 # Define CPU model paths and GPU model paths that include the model key
@@ -49,6 +50,7 @@ GPU_MODEL_PATHS = {
 MODEL_PATHS = GPU_MODEL_PATHS if torch.cuda.is_available() else CPU_MODEL_PATHS
 
 # Test prompt for your experiments
+FINE_TUNE = True  # Set to True if you want to fine-tune, otherwise False
 EPSILON = 0.05
 #TEST_PROMPT = "In a galaxy far, far away"
 TEST_PROMPT = "How many days in a week?"

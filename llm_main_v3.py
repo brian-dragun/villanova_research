@@ -1,6 +1,6 @@
 import os
 import torch
-from config import MODEL_PATHS, MODEL_NAME, TEST_PROMPT, EPSILON
+from config import MODEL_PATHS, MODEL_NAME, TEST_PROMPT, EPSILON, FINE_TUNE
 from llm_train import train_model
 from llm_prune_model import prune_model
 from llm_evaluate_models import evaluate_model
@@ -14,38 +14,50 @@ from colorama import Fore, Style
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 def display_generated_answer(model_name, prompt):
-    # Load model and tokenizer
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # Load the model and tokenizer
+    device = torch.device("cuda" if os.path.exists("/proc/driver/nvidia") else "cpu")
     model = AutoModelForCausalLM.from_pretrained(model_name, trust_remote_code=True)
+    tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
     model.to(device)
     model.eval()
-    tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
 
-    # Encode the prompt and generate a response
-    input_ids = tokenizer(prompt, return_tensors='pt').to(device)
-    output_ids = model.generate(
-        input_ids,
+    # Tokenize the input prompt with an attention mask
+    inputs = tokenizer(prompt, return_tensors="pt")
+    inputs = {key: value.to(device) for key, value in inputs.items()}
+    
+    # Generate an answer with some generation parameters; adjust as desired.
+    generated_ids = model.generate(
+        input_ids=inputs["input_ids"],
+        attention_mask=inputs["attention_mask"],
         max_length=100,
         num_beams=5,
+        no_repeat_ngram_size=2,
         temperature=0.7,
         top_k=50,
-        no_repeat_ngram_size=2
+        early_stopping=True,
+        pad_token_id=tokenizer.eos_token_id
     )
-    generated_text = tokenizer.decode(output_ids[0], skip_special_tokens=True)
-    return generated_text
-
+    answer = tokenizer.decode(generated_ids[0], skip_special_tokens=True)
+    return answer
 
 def main():
     print("\nUsing model paths:", MODEL_PATHS)
     print("\nEpsilon:", Fore.RED + str(EPSILON) + Style.RESET_ALL)
     print("Prompt:", Fore.RED + TEST_PROMPT + Style.RESET_ALL)
+    print("Fine Tune:", Fore.RED + str(FINE_TUNE) + Style.RESET_ALL)
     
     # Step 1: Fine-tune or load the original LLM model
     print(Fore.YELLOW + "\n🚀 **Step 1: Fine-tuning the LLM Model**" + Style.RESET_ALL)
-    if not os.path.exists(os.path.join(MODEL_PATHS["finetuned"], "model.safetensors")):
-        train_model(MODEL_PATHS["finetuned"])
+    if FINE_TUNE:
+        # If fine-tuning is enabled, check if a fine-tuned model exists; if not, train it.
+        if not os.path.exists(os.path.join(MODEL_PATHS["finetuned"], "model.safetensors")):
+            train_model(MODEL_PATHS["finetuned"])
+        else:
+            print(f"✅ Fine-tuned model found at {MODEL_PATHS['finetuned']} - Re-training as FINE_TUNE is True")
+            train_model(MODEL_PATHS["finetuned"])
     else:
-        print(f"✅ Fine-tuned model found at {MODEL_PATHS['finetuned']} - Skipping training.")
+        print(f"✅ Fine-tune flag is set to False, loading pre-trained model from {MODEL_PATHS['finetuned']}")
+
     
     # Step 2: Prune the model
     print(Fore.YELLOW + "\n🔍 **Step 2: Pruning the Model**" + Style.RESET_ALL)
