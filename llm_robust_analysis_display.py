@@ -30,7 +30,7 @@ def run_robust_analysis_display():
     # For interactive environments:
     plt.show()
     # Or, to save:
-    plt.savefig("llm_token_distribution.png")
+    plt.savefig("llm_diagram_token_distribution.png")
     print("Robust analysis display complete.\n")
 
 def pgd_attack(model, inputs_embeds, epsilon=EPSILON, alpha=0.01, num_iter=40):
@@ -93,6 +93,7 @@ def plot_fisher_info(fisher_info):
     plt.title("Fisher Information per Parameter")
     plt.tight_layout()
     plt.show()
+    plt.savefig("llm_diagram_fisher_information.png")
 
 def plot_token_distribution(outputs, token_idx, tokenizer, top_k=10):
     """
@@ -111,7 +112,7 @@ def plot_token_distribution(outputs, token_idx, tokenizer, top_k=10):
     plt.ylabel("Probability")
     plt.title(f"Top {top_k} token probabilities for token position {token_idx}")
     plt.show()
-    plt.savefig("token_distribution.png")
+    plt.savefig("llm_diagram_token_distribution.png")
 
 
 def main():

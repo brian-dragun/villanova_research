@@ -47,6 +47,7 @@ def plot_sensitivity(sensitivity_scores):
     plt.title("Sensitivity Scores for LLM Weights")
     plt.tight_layout()
     plt.show()
+    plt.savefig("llm_diagram_sensitivity_plot.png")
 
 if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

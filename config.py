@@ -51,5 +51,5 @@ MODEL_PATHS = GPU_MODEL_PATHS if torch.cuda.is_available() else CPU_MODEL_PATHS
 # Test prompt for your experiments
 EPSILON = 0.05
 #TEST_PROMPT = "In a galaxy far, far away"
-TEST_PROMPT = "How now brown cow! You Rock!"
+TEST_PROMPT = "How many days in a week?"
 

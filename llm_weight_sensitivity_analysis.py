@@ -3,6 +3,7 @@ import math
 import copy
 import torch
 import numpy as np
+import matplotlib.pyplot as plt
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from config import MODEL_NAME, TEST_PROMPT, EPSILON
 
@@ -83,10 +84,41 @@ def fisher_information_experiment(model, tokenizer, prompt, num_samples=20):
         fisher_info[name] /= num_samples
     return fisher_info
 
+# --- Plotting Functions ---
+def plot_layer_ablation_results(ablation_results, baseline):
+    layers = list(ablation_results.keys())
+    ppl_values = [ablation_results[layer] for layer in layers]
+    
+    plt.figure(figsize=(8, 5))
+    plt.bar(layers, ppl_values, color='skyblue')
+    plt.axhline(y=baseline, color='red', linestyle='--', label=f'Baseline: {baseline:.2f}')
+    plt.xlabel("Layer")
+    plt.ylabel("Perplexity After Ablation")
+    plt.title("Layer Ablation Experiment")
+    plt.legend()
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.savefig("llm_diagram_layer_ablation_results.png")
+    plt.show()
+
+def plot_weight_scaling_results(scaling_results, scaling_factors, baseline):
+    factors = scaling_factors
+    ppl_values = [scaling_results[factor] for factor in factors]
+    
+    plt.figure(figsize=(8, 5))
+    plt.plot(factors, ppl_values, marker='o', linestyle='-', color='green')
+    plt.axhline(y=baseline, color='red', linestyle='--', label=f'Baseline: {baseline:.2f}')
+    plt.xlabel("Scaling Factor")
+    plt.ylabel("Perplexity")
+    plt.title("Weight Scaling Experiment")
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig("llm_diagram_weight_scaling_results.png")
+    plt.show()
+
 # --- Main function to run experiments ---
 def main():
     # You can either use a single prompt from config or extend this list.
-    # For example, you could define test_prompts = [TEST_PROMPT, "Another prompt", ...]
     test_prompts = [TEST_PROMPT]
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -113,6 +145,7 @@ def main():
     print("Layer Ablation Results:")
     for layer, ppl in ablation_results.items():
         print(f"Layer: {layer} -> Perplexity after ablation: {ppl:.2f}")
+    plot_layer_ablation_results(ablation_results, baseline_ablation)
     
     # Run weight scaling experiment on a selected layer.
     scaling_prompt = test_prompts[0]
@@ -123,6 +156,7 @@ def main():
     print(f"Weight Scaling Results for layer {layer_name}:")
     for factor, ppl in scaling_results.items():
         print(f"Scaling factor: {factor} -> Perplexity: {ppl:.2f}")
+    plot_weight_scaling_results(scaling_results, scaling_factors, baseline_scale)
     
     # Compute Fisher Information for the first prompt.
     fisher_info = fisher_information_experiment(model, tokenizer, test_prompts[0])

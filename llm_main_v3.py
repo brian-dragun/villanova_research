@@ -1,4 +1,5 @@
 import os
+import torch
 from config import MODEL_PATHS, MODEL_NAME, TEST_PROMPT, EPSILON
 from llm_train import train_model
 from llm_prune_model import prune_model
@@ -8,8 +9,31 @@ from llm_adversarial_test import test_adversarial_robustness
 from llm_integrated_analysis import run_integrated_analysis
 from llm_bit_level_and_ablation_analysis import run_bit_level_and_ablation_analysis
 from llm_robust_analysis_display import run_robust_analysis_display
-from colorama import Fore, Style
 from llm_weight_sensitivity_analysis import main as run_weight_sensitivity_experiments
+from colorama import Fore, Style
+from transformers import AutoModelForCausalLM, AutoTokenizer
+
+def display_generated_answer(model_name, prompt):
+    # Load model and tokenizer
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = AutoModelForCausalLM.from_pretrained(model_name, trust_remote_code=True)
+    model.to(device)
+    model.eval()
+    tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
+
+    # Encode the prompt and generate a response
+    input_ids = tokenizer(prompt, return_tensors='pt').to(device)
+    output_ids = model.generate(
+        input_ids,
+        max_length=100,
+        num_beams=5,
+        temperature=0.7,
+        top_k=50,
+        no_repeat_ngram_size=2
+    )
+    generated_text = tokenizer.decode(output_ids[0], skip_special_tokens=True)
+    return generated_text
+
 
 def main():
     print("\nUsing model paths:", MODEL_PATHS)
@@ -17,47 +41,55 @@ def main():
     print("Prompt:", Fore.RED + TEST_PROMPT + Style.RESET_ALL)
     
     # Step 1: Fine-tune or load the original LLM model
-    print("\n🚀 **Step 1: Fine-tuning the LLM Model**")
+    print(Fore.YELLOW + "\n🚀 **Step 1: Fine-tuning the LLM Model**" + Style.RESET_ALL)
     if not os.path.exists(os.path.join(MODEL_PATHS["finetuned"], "model.safetensors")):
         train_model(MODEL_PATHS["finetuned"])
     else:
         print(f"✅ Fine-tuned model found at {MODEL_PATHS['finetuned']} - Skipping training.")
     
     # Step 2: Prune the model
-    print("\n🔍 **Step 2: Pruning the Model**")
+    print(Fore.YELLOW + "\n🔍 **Step 2: Pruning the Model**" + Style.RESET_ALL)
     prune_model(MODEL_PATHS["finetuned"], MODEL_PATHS["pruned"])
     
     # Step 3: Apply robustness test (adding noise to weights)
-    print("\n🎭 **Step 3: Applying Robustness Test (Adding Noise)**")
+    print(Fore.YELLOW + "\n🎭 **Step 3: Applying Robustness Test (Adding Noise)**" + Style.RESET_ALL)
     apply_robustness_test(MODEL_NAME, MODEL_PATHS["noisy"])
     
     # Step 4: Evaluate the models (using perplexity on a text dataset)
-    print("\n📊 **Step 4: Evaluating Model Performance (Perplexity)**")
+    print(Fore.YELLOW + "\n📊 **Step 4: Evaluating Model Performance (Perplexity)**" + Style.RESET_ALL)
     evaluate_model(MODEL_PATHS["finetuned"])
     evaluate_model(MODEL_PATHS["pruned"])
     evaluate_model(MODEL_PATHS["noisy"])
     
     # Step 5: Adversarial testing (FGSM attack on embeddings)
-    print("\n🛡 **Step 5: Adversarial Testing (FGSM Attack on Embeddings)**")
-    test_adversarial_robustness(MODEL_NAME, epsilon=EPSILON, prompt=TEST_PROMPT)
+    print(Fore.YELLOW + "\n🛡 **Step 5: Adversarial Testing (FGSM Attack on Embeddings)**" + Style.RESET_ALL)
+    adv_text = test_adversarial_robustness(MODEL_NAME, epsilon=EPSILON, prompt=TEST_PROMPT)
+    print(Fore.YELLOW + "Adversarial generated text (FGSM attack):" + Style.RESET_ALL, adv_text)
+
     
     # Step 6: Integrated Sensitivity and Super Weight Analysis
-    print("\n🔍 **Step 6: Integrated Sensitivity and Super Weight Analysis**")
+    print(Fore.YELLOW + "\n🔍 **Step 6: Integrated Sensitivity and Super Weight Analysis**" + Style.RESET_ALL)
     run_integrated_analysis(input_text=TEST_PROMPT)
     
     # Step 7: Bit-level Sensitivity Analysis and Ablation Study
-    print("\n🔍 **Step 7: Bit-level Sensitivity Analysis and Ablation Study**")
+    print(Fore.YELLOW + "\n🔍 **Step 7: Bit-level Sensitivity Analysis and Ablation Study**" + Style.RESET_ALL)
     run_bit_level_and_ablation_analysis(prompt=TEST_PROMPT)
     
     # Step 8: Robust Analysis Display (PGD attack + token distribution + Fisher info)
-    print("\n🔍 **Step 8: Robust Analysis Display**")
+    print(Fore.YELLOW + "\n🔍 **Step 8: Robust Analysis Display**" + Style.RESET_ALL)
     run_robust_analysis_display()
     
-    # Step 9: Weight Sensitivity Experiments (layer ablation, weight scaling, Fisher info)
-    print("\n🔍 **Step 9: Weight Sensitivity Experiments**")
+    # Step 9: Generate and display an answer to the prompt
+    print(Fore.YELLOW + "\n🔍 **Step 9: Generated Answer to the Prompt**" + Style.RESET_ALL)
+    answer = display_generated_answer(MODEL_NAME, TEST_PROMPT)
+    print("Prompt Response:")
+    print(answer)
+    
+    # Step 10: Weight Sensitivity Experiments (layer ablation, weight scaling, Fisher info)
+    print(Fore.YELLOW + "\n🔍 **Step 10: Weight Sensitivity Experiments**" + Style.RESET_ALL)
     run_weight_sensitivity_experiments()
     
-    print("\n✅ **All steps completed successfully!**")
+    print(Fore.GREEN + "\n✅ **All steps completed successfully!**" + Style.RESET_ALL)
 
 if __name__ == "__main__":
     main()
