@@ -9,6 +9,7 @@ from llm_integrated_analysis import run_integrated_analysis
 from llm_bit_level_and_ablation_analysis import run_bit_level_and_ablation_analysis
 from llm_robust_analysis_display import run_robust_analysis_display
 from colorama import Fore, Style
+from llm_weight_sensitivity_analysis import main as run_weight_sensitivity_experiments
 
 def main():
     print("\nUsing model paths:", MODEL_PATHS)
@@ -44,13 +45,17 @@ def main():
     print("\n🔍 **Step 6: Integrated Sensitivity and Super Weight Analysis**")
     run_integrated_analysis(input_text=TEST_PROMPT)
     
-    # Step 7: Bit-level Sensitivity Analysis and Ablation Study (Updated to be prompt-dependent)
+    # Step 7: Bit-level Sensitivity Analysis and Ablation Study
     print("\n🔍 **Step 7: Bit-level Sensitivity Analysis and Ablation Study**")
     run_bit_level_and_ablation_analysis(prompt=TEST_PROMPT)
     
     # Step 8: Robust Analysis Display (PGD attack + token distribution + Fisher info)
     print("\n🔍 **Step 8: Robust Analysis Display**")
     run_robust_analysis_display()
+    
+    # Step 9: Weight Sensitivity Experiments (layer ablation, weight scaling, Fisher info)
+    print("\n🔍 **Step 9: Weight Sensitivity Experiments**")
+    run_weight_sensitivity_experiments()
     
     print("\n✅ **All steps completed successfully!**")
 
