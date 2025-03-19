@@ -5,36 +5,39 @@ from transformers import AutoTokenizer
 from config import MODEL_NAME, TEST_PROMPT
 
 def compute_hessian_sensitivity(model, input_text, device=torch.device("cpu")):
-    """
-    Computes Hessian-based sensitivity scores for LLM weights given an input text.
-    Uses the slow tokenizer (use_fast=False) to avoid tiktoken conversion issues.
-    """
     model.eval()
-    # Force slow tokenizer to avoid tiktoken conversion issues.
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, use_fast=False)
     inputs = tokenizer(input_text, return_tensors="pt")
     inputs = {k: v.to(device) for k, v in inputs.items()}
-    
+
     outputs = model(**inputs)
-    # Use model loss if available; otherwise, use the mean of logits as a proxy.
     loss = outputs.loss if hasattr(outputs, "loss") and outputs.loss is not None else outputs.logits.mean()
-    
-    # Compute first-order gradients.
-    grads = autograd.grad(loss, model.parameters(), create_graph=True)
-    
+    grads = torch.autograd.grad(loss, model.parameters(), create_graph=True)
+
     sensitivity_scores = {}
-    for (name, param), grad in zip(model.named_parameters(), grads):
-        if grad is not None:
-            # Compute the diagonal of the Hessian for the parameter.
-            hessian_diag = autograd.grad(
-                grad, param, 
-                grad_outputs=torch.ones_like(grad), 
-                retain_graph=True, 
-                allow_unused=True
-            )[0]
-            if hessian_diag is not None:
-                sensitivity_scores[name] = hessian_diag.abs().sum().item()
-    return sensitivity_scores
+    try:
+        for (name, param), grad in zip(model.named_parameters(), grads):
+            if grad is not None:
+                # Try computing the diagonal of the Hessian
+                hessian_diag = torch.autograd.grad(
+                    grad, param,
+                    grad_outputs=torch.ones_like(grad),
+                    retain_graph=True,
+                    allow_unused=True
+                )[0]
+                if hessian_diag is not None:
+                    sensitivity_scores[name] = hessian_diag.abs().sum().item()
+        return sensitivity_scores
+    except RuntimeError as e:
+        print("Hessian computation failed:", e)
+        print("Falling back to gradient-based sensitivity.")
+        # Fall back: use the sum of absolute gradients as a proxy.
+        grad_sensitivity = {}
+        for (name, param), grad in zip(model.named_parameters(), grads):
+            if grad is not None:
+                grad_sensitivity[name] = grad.abs().sum().item()
+        return grad_sensitivity
+
 
 def plot_sensitivity(sensitivity_scores):
     names = list(sensitivity_scores.keys())
