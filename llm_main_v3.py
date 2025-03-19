@@ -1,6 +1,6 @@
 import os
 import torch
-from config import MODEL_PATHS, MODEL_NAME, TEST_PROMPT, EPSILON, FINE_TUNE
+from config import MODEL_PATHS, MODEL_NAME, TEST_PROMPT, EPSILON
 from llm_train import train_model
 from llm_prune_model import prune_model
 from llm_evaluate_models import evaluate_model
@@ -40,25 +40,30 @@ def display_generated_answer(model_name, prompt):
     answer = tokenizer.decode(generated_ids[0], skip_special_tokens=True)
     return answer
 
+def load_or_train_model(model_dir):
+    """
+    If the model directory doesn't exist, train a new model.
+    Otherwise, assume it has a trained model and skip training.
+    """
+    if not os.path.isdir(model_dir):
+        print(f"🚀 No model directory found at '{model_dir}'. Starting fine-tuning...")
+        train_model(model_dir)
+    else:
+        print(f"✅ Found model directory at '{model_dir}', skipping re-training.")
+
+    # Now load the model from local directory
+    model = AutoModelForCausalLM.from_pretrained(model_dir, trust_remote_code=True)
+    return model
+
 def main():
     print("\nUsing model paths:", MODEL_PATHS)
     print("\nEpsilon:", Fore.RED + str(EPSILON) + Style.RESET_ALL)
     print("Prompt:", Fore.RED + TEST_PROMPT + Style.RESET_ALL)
-    print("Fine Tune:", Fore.RED + str(FINE_TUNE) + Style.RESET_ALL)
     
     # Step 1: Fine-tune or load the original LLM model
-    print(Fore.YELLOW + "\n🚀 **Step 1: Fine-tuning the LLM Model**" + Style.RESET_ALL)
-    if FINE_TUNE:
-        # If fine-tuning is enabled, check if a fine-tuned model exists; if not, train it.
-        if not os.path.exists(os.path.join(MODEL_PATHS["finetuned"], "model.safetensors")):
-            train_model(MODEL_PATHS["finetuned"])
-        else:
-            print(f"✅ Fine-tuned model found at {MODEL_PATHS['finetuned']} - Re-training as FINE_TUNE is True")
-            train_model(MODEL_PATHS["finetuned"])
-    else:
-        print(f"✅ Fine-tune flag is set to False, loading pre-trained model from {MODEL_PATHS['finetuned']}")
+    print(Fore.YELLOW + "\n🚀 **Step 1: Fine-tuning (or Loading) the LLM Model**" + Style.RESET_ALL)
+    model = load_or_train_model(MODEL_PATHS["finetuned"])
 
-    
     # Step 2: Prune the model
     print(Fore.YELLOW + "\n🔍 **Step 2: Pruning the Model**" + Style.RESET_ALL)
     prune_model(MODEL_PATHS["finetuned"], MODEL_PATHS["pruned"])
@@ -78,7 +83,6 @@ def main():
     adv_text = test_adversarial_robustness(MODEL_NAME, epsilon=EPSILON, prompt=TEST_PROMPT)
     print(Fore.YELLOW + "Adversarial generated text (FGSM attack):" + Style.RESET_ALL, adv_text)
 
-    
     # Step 6: Integrated Sensitivity and Super Weight Analysis
     print(Fore.YELLOW + "\n🔍 **Step 6: Integrated Sensitivity and Super Weight Analysis**" + Style.RESET_ALL)
     run_integrated_analysis(input_text=TEST_PROMPT)

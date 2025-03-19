@@ -1,38 +1,52 @@
 import os
-# Set these environment variables as early as possible.
 os.environ["TORCH_USE_FLASH_ATTENTION"] = "0"
 os.environ["TORCH_USE_EFFICIENT_ATTENTION"] = "0"
-os.environ["LLAMA_DISABLE_FLASH_ATTENTION"] = "1"  # Attempt to force legacy attention in Llama models
+os.environ["LLAMA_DISABLE_FLASH_ATTENTION"] = "1"
 
 import torch
-import matplotlib.pyplot as plt
 from transformers import AutoConfig, AutoModelForCausalLM
 from llm_analyze_sensitivity import compute_hessian_sensitivity, plot_sensitivity
 from llm_super_weights import identify_super_weights
-from config import MODEL_NAME, TEST_PROMPT
+from config import MODEL_NAME
 from tqdm import tqdm
 
-def run_integrated_analysis(input_text=TEST_PROMPT):
+def run_integrated_analysis(input_text="Hello world"):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    
+    # 1) Load config and attempt to disable flash/efficient attention
     config = AutoConfig.from_pretrained(MODEL_NAME)
     if hasattr(config, "use_flash_attn"):
         config.use_flash_attn = False
-    model = AutoModelForCausalLM.from_pretrained(MODEL_NAME, config=config, trust_remote_code=True)
+    if hasattr(config, "rope_scaling"):
+        config.rope_scaling = None
+    
+    # 2) Load model with updated config
+    model = AutoModelForCausalLM.from_pretrained(
+        MODEL_NAME, 
+        config=config,
+        trust_remote_code=True
+    )
     model.to(device)
     model.eval()
     
-    print("Computing Hessian-based sensitivity scores on device:", device)
+    print(f"Computing Hessian-based sensitivity scores on device: {device}")
     try:
         sensitivity_scores = compute_hessian_sensitivity(model, input_text, device=device)
     except RuntimeError as e:
-        print("Error during integrated analysis on device", device, ":", e)
+        print(f"Error during integrated analysis on device {device}: {e}")
+        # Attempt fallback to CPU
         if device.type == "cuda":
             print("Falling back to CPU for integrated analysis...")
-            device = torch.device("cpu")
-            model.to(device)
-            sensitivity_scores = compute_hessian_sensitivity(model, input_text, device=device)
+            model.to("cpu")
+            try:
+                sensitivity_scores = compute_hessian_sensitivity(model, input_text, device=torch.device("cpu"))
+            except RuntimeError as e2:
+                print(f"Still failed on CPU: {e2}")
+                print("Skipping Hessian analysis.")
+                sensitivity_scores = {}
         else:
-            raise e
+            print("Skipping Hessian analysis (no fallback).")
+            sensitivity_scores = {}
     
     print("Identifying super weights (Z-score > 2.5)...")
     super_weights = identify_super_weights(model, z_threshold=2.5)
@@ -47,7 +61,8 @@ def run_integrated_analysis(input_text=TEST_PROMPT):
             print("  No super weight outliers detected.")
         print()
     
-    plot_sensitivity(sensitivity_scores)
+    if sensitivity_scores:
+        plot_sensitivity(sensitivity_scores)
 
 if __name__ == "__main__":
     run_integrated_analysis()

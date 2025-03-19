@@ -9,6 +9,7 @@ tqdm
 protobuf
 tiktoken
 deepspeed
+sentencepiece
 huggingface_hub[cli]
 pybind11
 mpi4py
