@@ -67,8 +67,10 @@ def train_model(output_dir="data/llm_finetuned"):
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
     
-    trainer.train()
-    model.save_pretrained(output_dir)
+    #trainer.train()
+    #model.save_pretrained(output_dir)
+    trainer.train(resume_from_checkpoint=True)
+    trainer.save_model(output_dir)
     print(f"✅ Model fine-tuned and saved to {output_dir}")
 
 if __name__ == "__main__":

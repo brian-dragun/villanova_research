@@ -1,12 +1,18 @@
+import os
+import time
 import torch
 import torch.autograd as autograd
 import matplotlib
-matplotlib.use("Agg")
+matplotlib.use("Agg")  # Ensure compatibility with non-GUI environments
 import matplotlib.pyplot as plt
-from transformers import AutoTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer
 from config import MODEL_NAME, TEST_PROMPT
 
 def compute_hessian_sensitivity(model, input_text, device=torch.device("cpu")):
+    """
+    Compute Hessian-based sensitivity scores for model parameters.
+    If Hessian computation fails, fall back to gradient-based sensitivity.
+    """
     model.eval()
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, use_fast=False)
     inputs = tokenizer(input_text, return_tensors="pt")
@@ -20,10 +26,10 @@ def compute_hessian_sensitivity(model, input_text, device=torch.device("cpu")):
     try:
         for (name, param), grad in zip(model.named_parameters(), grads):
             if grad is not None:
-                # Try computing the diagonal of the Hessian
+                # Compute the diagonal of the Hessian
                 hessian_diag = torch.autograd.grad(
                     grad, param,
-                    grad_outputs=torch.ones_like(grad),
+                    grad_outputs=torch.ones_like(grad, device=grad.device, requires_grad=False),
                     retain_graph=True,
                     allow_unused=True
                 )[0]
@@ -31,9 +37,10 @@ def compute_hessian_sensitivity(model, input_text, device=torch.device("cpu")):
                     sensitivity_scores[name] = hessian_diag.abs().sum().item()
         return sensitivity_scores
     except RuntimeError as e:
-        print("Hessian computation failed:", e)
+        print("⚠️ Hessian computation failed:", e)
         print("Falling back to gradient-based sensitivity.")
-        # Fall back: use the sum of absolute gradients as a proxy.
+
+        # Fallback: use sum of absolute gradients as sensitivity
         grad_sensitivity = {}
         for (name, param), grad in zip(model.named_parameters(), grads):
             if grad is not None:
@@ -41,8 +48,20 @@ def compute_hessian_sensitivity(model, input_text, device=torch.device("cpu")):
         return grad_sensitivity
 
 def plot_sensitivity(sensitivity_scores):
+    """
+    Plot Hessian Sensitivity Scores and save the figure.
+    """
+    output_dir = "outputs"
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    # Generate unique filename with timestamp
+    timestamp = time.strftime("%Y%m%d-%H%M%S")
+    filename = os.path.join(output_dir, f"sensitivity_plot_{timestamp}.png")
+
     names = list(sensitivity_scores.keys())
     scores = [sensitivity_scores[name] for name in names]
+
     plt.figure(figsize=(12, 6))
     plt.bar(range(len(names)), scores)
     plt.xticks(range(len(names)), names, rotation=90)
@@ -50,17 +69,29 @@ def plot_sensitivity(sensitivity_scores):
     plt.ylabel("Hessian Sensitivity Score")
     plt.title("Sensitivity Scores for LLM Weights")
     plt.tight_layout()
-    plt.savefig("llm_diagram_sensitivity_plot.png")
+
+    # Save before closing the figure
+    plt.savefig(filename)
+    print(f"✅ Saved plot: {filename}")
+
+    # Free memory
     plt.close()
 
 if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    from transformers import AutoModelForCausalLM
+    print(f"Using device: {device}")
+
+    # Load the model
     model = AutoModelForCausalLM.from_pretrained(MODEL_NAME, trust_remote_code=True)
     model.to(device)
+
+    # Run Hessian Sensitivity Analysis
     test_text = TEST_PROMPT
     sensitivity_scores = compute_hessian_sensitivity(model, test_text, device=device)
-    print("Hessian Sensitivity Scores:")
+
+    print("\n🔍 Hessian Sensitivity Scores:")
     for name, score in sensitivity_scores.items():
         print(f"{name}: {score:.4f}")
+
+    # Plot and save results
     plot_sensitivity(sensitivity_scores)

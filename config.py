@@ -8,6 +8,10 @@ PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 
 # Path to the shared data folder at the project root level
 DATA_DIR = os.path.join(PROJECT_ROOT, "data")
+if not os.path.exists(DATA_DIR):
+    os.makedirs(DATA_DIR)
+    print(f"📁 Created missing data directory: {DATA_DIR}")
+
 
 # Example: SqueezeNet model output paths
 SQUEEZENET_PATHS = {
@@ -31,6 +35,9 @@ MODEL_OPTIONS = {
 # Select the model key to use; change this key to switch models
 #MODEL_KEY = "gptneo125m"
 MODEL_KEY = "llama27bhf"
+if MODEL_KEY not in MODEL_OPTIONS:
+    print(f"⚠️ Warning: MODEL_KEY '{MODEL_KEY}' not found. Using default 'llama27bhf'.")
+    MODEL_KEY = "llama27bhf"
 MODEL_NAME = MODEL_OPTIONS[MODEL_KEY]
 
 # Define CPU model paths and GPU model paths that include the model key

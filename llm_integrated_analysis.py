@@ -7,10 +7,10 @@ import torch
 from transformers import AutoConfig, AutoModelForCausalLM
 from llm_analyze_sensitivity import compute_hessian_sensitivity, plot_sensitivity
 from llm_super_weights import identify_super_weights
-from config import MODEL_NAME
+from config import MODEL_NAME, TEST_PROMPT
 from tqdm import tqdm
 
-def run_integrated_analysis(input_text="Hello world"):
+def run_integrated_analysis(input_text=TEST_PROMPT):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
     # 1) Load config and attempt to disable flash/efficient attention
