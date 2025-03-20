@@ -1,5 +1,7 @@
 import torch
 import torch.autograd as autograd
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from transformers import AutoTokenizer
 from config import MODEL_NAME, TEST_PROMPT
@@ -38,7 +40,6 @@ def compute_hessian_sensitivity(model, input_text, device=torch.device("cpu")):
                 grad_sensitivity[name] = grad.abs().sum().item()
         return grad_sensitivity
 
-
 def plot_sensitivity(sensitivity_scores):
     names = list(sensitivity_scores.keys())
     scores = [sensitivity_scores[name] for name in names]
@@ -49,8 +50,8 @@ def plot_sensitivity(sensitivity_scores):
     plt.ylabel("Hessian Sensitivity Score")
     plt.title("Sensitivity Scores for LLM Weights")
     plt.tight_layout()
-    plt.show()
     plt.savefig("llm_diagram_sensitivity_plot.png")
+    plt.close()
 
 if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

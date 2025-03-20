@@ -28,6 +28,11 @@ echo "Logging into Hugging Face..."
 # The token is: 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
 #echo -e "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\ny" | huggingface-cli login
 
-huggingface-cli login
+HF_TOKEN="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"
+
+huggingface-cli login <<EOF
+$HF_TOKEN
+Y
+EOF
 
 echo "Setup complete."
