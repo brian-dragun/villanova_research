@@ -2,6 +2,7 @@ import os
 os.environ["TORCH_USE_FLASH_ATTENTION"] = "0"
 os.environ["TORCH_USE_EFFICIENT_ATTENTION"] = "0"
 os.environ["LLAMA_DISABLE_FLASH_ATTENTION"] = "1"
+os.environ["PYTORCH_USE_SDPA"] = "0"
 
 import torch
 from transformers import AutoConfig, AutoModelForCausalLM
