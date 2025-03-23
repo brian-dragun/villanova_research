@@ -1,61 +1,43 @@
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
-from config import MODEL_NAME, TEST_PROMPT
 
-def compute_gradient_sensitivity(model, inputs, targets):
+def compute_gradient_sensitivity(model, inputs, targets=None):
+    """
+    Computes gradient-based sensitivity for each parameter.
+    Assumes the `inputs` dict already includes the "labels" key.
+    Returns a dictionary mapping parameter names to a flattened tensor of absolute gradients.
+    """
     model.zero_grad()
+    # Call the model with inputs; "labels" is already in inputs.
     outputs = model(**inputs)
-    loss = outputs.loss if hasattr(outputs, "loss") and outputs.loss is not None else outputs.logits.mean()
-    loss.backward(retain_graph=True)
+    loss = outputs.loss
+    loss.backward()
     
-    sensitivity_scores = {}
+    sensitivity_dict = {}
     for name, param in model.named_parameters():
         if param.grad is not None:
-            # Save a copy of the absolute gradient values.
-            sensitivity_scores[name] = param.grad.abs().detach().clone()
-    return sensitivity_scores
+            sensitivity_dict[name] = param.grad.detach().abs().view(-1)
+    return sensitivity_dict
 
-def prune_by_sensitivity(model, sensitivity_scores, prune_ratio=0.05, sample_size=1000000):
+def prune_by_sensitivity(model, sensitivity_dict, prune_ratio=0.01):
     """
-    Prune weights based on sensitivity scores. If the sensitivity tensor is huge,
-    randomly sample a subset for quantile calculation.
+    For each parameter, sample the gradient sensitivity if it is too large,
+    compute the quantile threshold, and zero out weights with absolute value
+    below that threshold.
+    
+    prune_ratio: quantile for threshold (e.g. 0.01 for the bottom 1%).
     """
     with torch.no_grad():
         for name, param in model.named_parameters():
-            if name in sensitivity_scores:
-                sens_flat = sensitivity_scores[name].view(-1)
-                # If the number of elements is huge, sample a subset for quantile calculation.
-                if sens_flat.numel() > sample_size:
-                    # Randomly permute indices and take the first 'sample_size' elements.
-                    indices = torch.randperm(sens_flat.numel(), device=sens_flat.device)[:sample_size]
-                    sens_sample = sens_flat[indices]
-                    threshold = torch.quantile(sens_sample.cpu(), prune_ratio)
+            if param.requires_grad and name in sensitivity_dict:
+                sens = sensitivity_dict[name]
+                # If the sensitivity tensor is huge, sample 1,000,000 values.
+                if sens.numel() > 1_000_000:
+                    indices = torch.randperm(sens.numel())[:1_000_000]
+                    sens_sample = sens[indices]
                 else:
-                    threshold = torch.quantile(sens_flat.cpu(), prune_ratio)
-                # Move threshold back to the original device
-                threshold = threshold.to(sens_flat.device)
-                mask = sensitivity_scores[name] >= threshold
-                param.data.mul_(mask)
+                    sens_sample = sens
+                # Compute threshold on the CPU to avoid device issues.
+                threshold = torch.quantile(sens_sample.cpu(), prune_ratio)
+                mask = torch.abs(param) >= threshold
+                param.mul_(mask.to(param.device))
     return model
-
-if __name__ == "__main__":
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = AutoModelForCausalLM.from_pretrained(MODEL_NAME, trust_remote_code=True)
-    model.to(device)
-    model.train()  # Enable gradients
-    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, use_fast=False)
-    
-    inputs = tokenizer(TEST_PROMPT, return_tensors="pt")
-    inputs = {k: v.to(device) for k, v in inputs.items()}
-    targets = inputs["input_ids"]
-    
-    print("Computing gradient sensitivity scores...")
-    sens_scores = compute_gradient_sensitivity(model, inputs, targets)
-    
-    prune_ratio = 0.05  # Prune the lowest 5% sensitive weights per parameter
-    print(f"Pruning weights with the lowest {prune_ratio*100}% sensitivity...")
-    model = prune_by_sensitivity(model, sens_scores, prune_ratio=prune_ratio)
-    
-    pruned_model_path = "data/llm_sensitivity_pruned"
-    model.save_pretrained(pruned_model_path)
-    print(f"Pruned model saved to {pruned_model_path}")
