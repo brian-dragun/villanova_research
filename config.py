@@ -58,6 +58,6 @@ MODEL_PATHS = GPU_MODEL_PATHS if torch.cuda.is_available() else CPU_MODEL_PATHS
 
 # SETUP TEST PROMPT
 EPSILON = 0.05
-#TEST_PROMPT = "In a galaxy far, far away"
-TEST_PROMPT = "How many days in a week?"
+TEST_PROMPT = "What movie is 'In a galaxy far, far away' from?"
+#TEST_PROMPT = "How many days in a week?"
 
