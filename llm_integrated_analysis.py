@@ -7,7 +7,7 @@ os.environ["PYTORCH_USE_SDPA"] = "0"
 import torch
 from transformers import AutoConfig, AutoModelForCausalLM
 from llm_analyze_sensitivity import compute_hessian_sensitivity, plot_sensitivity
-from llm_super_weights import identify_super_weights
+from llm_super_weights import identify_super_weights, plot_layerwise_superweights
 from config import MODEL_NAME, TEST_PROMPT
 from tqdm import tqdm
 
@@ -50,7 +50,9 @@ def run_integrated_analysis(input_text=TEST_PROMPT):
             sensitivity_scores = {}
     
     print("Identifying super weights (Z-score > 2.5)...")
-    super_weights = identify_super_weights(model, z_threshold=2.5)
+    #super_weights = identify_super_weights(model, z_threshold=2.5)
+    super_weights, layer_summary = identify_super_weights(model, z_threshold=2.5)
+    plot_layerwise_superweights(layer_summary)
     
     print("\nIntegrated Analysis of LLM Weight Importance:")
     for name in tqdm(sensitivity_scores, desc="Processing parameters", unit="param"):
