@@ -14,6 +14,9 @@ git config --global user.email "bdragun@villanova.edu"
 git config --global user.name "Brian Dragun"
 
 ## **Requirements**
+To Get Environment Setup Run
+./setup_v2.sh
+
 
 pip install -r requirements.txt
 
