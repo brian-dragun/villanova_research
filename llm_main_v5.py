@@ -52,6 +52,7 @@ def load_or_train_model(model_dir):
         train_model(model_dir)
     else:
         print(f"✅ Found model directory at '{model_dir}', skipping re-training.")
+
     model = AutoModelForCausalLM.from_pretrained(model_dir, trust_remote_code=True)
     return model
 
@@ -61,58 +62,83 @@ def main():
     print("\nEpsilon:", Fore.RED + str(EPSILON) + Style.RESET_ALL)
     print("Prompt:", Fore.RED + TEST_PROMPT + Style.RESET_ALL)
 
+    # Step 1: Load or train the model
     print(Fore.YELLOW + "\n🚀 **Step 1: Fine-tuning (or Loading) the LLM Model**" + Style.RESET_ALL)
     model = load_or_train_model(MODEL_PATHS["finetuned"])
 
-    print(Fore.YELLOW + "\n🛠 **Step 1a: Sensitivity-based Pruning (Gradient-based)**" + Style.RESET_ALL)
-    debug_print("Applying sensitivity-based pruning using gradient sensitivity...")
-    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, trust_remote_code=True)
-    inputs = tokenizer(TEST_PROMPT, return_tensors="pt")
-    inputs = {k: v.to(model.device) for k, v in inputs.items()}
-    # Set labels (for language modeling, we use input_ids as labels)
-    inputs["labels"] = inputs["input_ids"].clone()
-    
-    sens_dict = compute_gradient_sensitivity(model, inputs)
-    prune_ratio = 0.01  # For example, prune the bottom 1% of sensitive weights
-    model = prune_by_sensitivity(model, sens_dict, prune_ratio=prune_ratio)
+    # GPU check: if multiple GPUs exist, wrap the model in DataParallel.
+    if torch.cuda.is_available():
+        num_gpus = torch.cuda.device_count()
+        debug_print(f"Number of GPUs available: {num_gpus}")
+        if num_gpus > 1:
+            debug_print("Multiple GPUs detected. Using DataParallel to distribute the model.")
+            model = torch.nn.DataParallel(model)
+    else:
+        debug_print("No GPUs detected. Using CPU.")
 
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.to(device)
+
+    # Step 1a: Sensitivity-based pruning (gradient-based)
+    print(Fore.YELLOW + "\n🛠 **Step 1a: Sensitivity-based Pruning (Gradient-based)**" + Style.RESET_ALL)
+    # Create a tokenizer instance and prepare inputs
+    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, trust_remote_code=True)
+    inputs = tokenizer(TEST_PROMPT, return_tensors="pt").to(device)
+    # For a causal language model, we use the input_ids as targets
+    targets = inputs["input_ids"]
+
+    debug_print("Applying sensitivity-based pruning using gradient sensitivity...")
+    sens_dict = compute_gradient_sensitivity(model, inputs, targets)
+    prune_ratio = 0.01  # For example, prune the bottom 1% of sensitivity values.
+    model = prune_by_sensitivity(model, sens_dict, prune_ratio=prune_ratio)
+    # (Optionally, you might print a summary of how many weights were pruned.)
+
+    # Step 2: Prune the model using your other pruning method
     print(Fore.YELLOW + "\n🔍 **Step 2: Pruning the Model**" + Style.RESET_ALL)
     debug_print("Calling `prune_model` from llm_prune_model.py")
     prune_model(MODEL_PATHS["finetuned"], MODEL_PATHS["pruned"])
 
+    # Step 3: Apply robustness test (adding noise)
     print(Fore.YELLOW + "\n🎭 **Step 3: Applying Robustness Test (Adding Noise)**" + Style.RESET_ALL)
     debug_print("Calling `apply_robustness_test` from llm_robustness_test.py")
     apply_robustness_test(MODEL_NAME, MODEL_PATHS["noisy"])
 
+    # Step 4: Evaluate model performance (Perplexity)
     print(Fore.YELLOW + "\n📊 **Step 4: Evaluating Model Performance (Perplexity)**" + Style.RESET_ALL)
     debug_print("Calling `evaluate_model` from llm_evaluate_models.py")
     evaluate_model(MODEL_PATHS["finetuned"])
     evaluate_model(MODEL_PATHS["pruned"])
     evaluate_model(MODEL_PATHS["noisy"])
 
+    # Step 5: Adversarial testing (FGSM attack)
     print(Fore.YELLOW + "\n🛡 **Step 5: Adversarial Testing (FGSM Attack on Embeddings)**" + Style.RESET_ALL)
     debug_print("Calling `test_adversarial_robustness` from llm_adversarial_test.py")
     adv_text = test_adversarial_robustness(MODEL_NAME, epsilon=EPSILON, prompt=TEST_PROMPT)
     print(Fore.YELLOW + "Adversarial generated text (FGSM attack):" + Style.RESET_ALL, adv_text)
 
+    # Step 6: Integrated sensitivity and super weight analysis
     print(Fore.YELLOW + "\n🔍 **Step 6: Integrated Sensitivity and Super Weight Analysis**" + Style.RESET_ALL)
     debug_print("Calling `run_integrated_analysis` from llm_integrated_analysis.py")
     run_integrated_analysis(input_text=TEST_PROMPT)
 
+    # Step 7: Bit-level sensitivity analysis and ablation study
     print(Fore.YELLOW + "\n🔍 **Step 7: Bit-level Sensitivity Analysis and Ablation Study**" + Style.RESET_ALL)
     debug_print("Calling `run_bit_level_and_ablation_analysis` from llm_bit_level_and_ablation_analysis.py")
     run_bit_level_and_ablation_analysis(prompt=TEST_PROMPT)
 
+    # Step 8: Robust analysis display
     print(Fore.YELLOW + "\n🔍 **Step 8: Robust Analysis Display**" + Style.RESET_ALL)
     debug_print("Calling `run_robust_analysis_display` from llm_robust_analysis_display.py")
     run_robust_analysis_display()
 
+    # Step 9: Generated answer to the prompt
     print(Fore.YELLOW + "\n🔍 **Step 9: Generated Answer to the Prompt**" + Style.RESET_ALL)
     debug_print("Calling `display_generated_answer` from this script")
     answer = display_generated_answer(MODEL_NAME, TEST_PROMPT)
     print("Prompt Response:")
     print(answer)
 
+    # Step 10: Weight sensitivity experiments
     print(Fore.YELLOW + "\n🔍 **Step 10: Weight Sensitivity Experiments**" + Style.RESET_ALL)
     debug_print("Calling `run_weight_sensitivity_experiments` from llm_weight_sensitivity_analysis.py")
     run_weight_sensitivity_experiments()
