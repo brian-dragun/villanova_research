@@ -51,3 +51,20 @@ else:
 EOF
 
 echo -e "${YELLOW}Setup complete.${NC}"
+
+
+# Install oh-my-posh and add executable permission.
+sudo wget https://github.com/JanDeDobbeleer/oh-my-posh/releases/latest/download/posh-linux-amd64 -O /usr/local/bin/oh-my-posh
+sudo chmod +x /usr/local/bin/oh-my-posh
+
+# Setup themes and set permission.
+mkdir ~/.poshthemes
+wget https://github.com/JanDeDobbeleer/oh-my-posh/releases/latest/download/themes.zip -O ~/.poshthemes/themes.zip
+unzip ~/.poshthemes/themes.zip -d ~/.poshthemes
+chmod u+rw ~/.poshthemes/*.json
+
+# Clean up files.
+rm ~/.poshthemes/themes.zip
+
+# Setup in profile in when load terminal. (use theme bash as example.)
+echo 'eval "$(oh-my-posh init bash)"' >> ~/.profile
