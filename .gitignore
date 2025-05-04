@@ -171,4 +171,9 @@ cython_debug/
 .pypirc
 
 
-data/.env
+.env
+__pycache__/
+*.py[cod]
+*$py.class
+.DS_Store
+data/
