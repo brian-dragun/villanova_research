@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Villanova Research Output Dashboard</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        .container {
+            width: 95%;
+            margin: 20px auto;
+        }
+        header {
+            background-color: #003366;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        .tab {
+            overflow: hidden;
+            border: 1px solid #ccc;
+            background-color: #f1f1f1;
+        }
+        .tab button {
+            background-color: inherit;
+            float: left;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            padding: 14px 16px;
+            transition: 0.3s;
+            font-size: 17px;
+        }
+        .tab button:hover {
+            background-color: #ddd;
+        }
+        .tab button.active {
+            background-color: #003366;
+            color: white;
+        }
+        .tabcontent {
+            display: none;
+            padding: 6px 12px;
+            border: 1px solid #ccc;
+            border-top: none;
+            background-color: white;
+        }
+        .date-group, .model-group, .analysis-group {
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        tr:hover {background-color: #f5f5f5;}
+        .last-updated {
+            text-align: right;
+            font-style: italic;
+            color: #666;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Villanova Research Output Dashboard</h1>
+    </header>
+    
+    <div class="container">
+        <div class="tab">
+            <button class="tablinks active" onclick="openTab(event, 'ByDate')">By Date</button>
+            <button class="tablinks" onclick="openTab(event, 'ByModel')">By Model</button>
+            <button class="tablinks" onclick="openTab(event, 'ByAnalysis')">By Analysis Type</button>
+        </div>
+        
+        <div id="ByDate" class="tabcontent" style="display: block;">
+            <h2>Outputs By Date</h2>
+            <div class="date-group">
+                <h3>2025-05-05</h3>
+                <table>
+                    <tr>
+                        <th>Time</th>
+                        <th>Analysis Type</th>
+                        <th>Model</th>
+                        <th>Directory</th>
+                    </tr>
+                    <tr>
+                        <td>18:15:04</td>
+                        <td>sensitivity</td>
+                        <td>Llama-2-7b-hf</td>
+                        <td><a href="../../sensitivity_Llama-2-7b-hf_20250505_181504" target="_blank">sensitivity_Llama-2-7b-hf_20250505_181504</a></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        
+        <div id="ByModel" class="tabcontent">
+            <h2>Outputs By Model</h2>
+            <div class="model-group">
+                <h3>Model: Llama-2-7b-hf</h3>
+                <table>
+                    <tr>
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Analysis Type</th>
+                        <th>Directory</th>
+                    </tr>
+                    <tr>
+                        <td>2025-05-05</td>
+                        <td>18:15:04</td>
+                        <td>sensitivity</td>
+                        <td><a href="../../sensitivity_Llama-2-7b-hf_20250505_181504" target="_blank">sensitivity_Llama-2-7b-hf_20250505_181504</a></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        
+        <div id="ByAnalysis" class="tabcontent">
+            <h2>Outputs By Analysis Type</h2>
+            <div class="analysis-group">
+                <h3>Analysis: sensitivity</h3>
+                <table>
+                    <tr>
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Model</th>
+                        <th>Directory</th>
+                    </tr>
+                    <tr>
+                        <td>2025-05-05</td>
+                        <td>18:15:04</td>
+                        <td>Llama-2-7b-hf</td>
+                        <td><a href="../../sensitivity_Llama-2-7b-hf_20250505_181504" target="_blank">sensitivity_Llama-2-7b-hf_20250505_181504</a></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        
+        <p class="last-updated">Last updated: 2025-05-05 18:15:04</p>
+    </div>
+    
+    <script>
+        function openTab(evt, tabName) {
+            var i, tabcontent, tablinks;
+            tabcontent = document.getElementsByClassName("tabcontent");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
+            }
+            tablinks = document.getElementsByClassName("tablinks");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].className = tablinks[i].className.replace(" active", "");
+            }
+            document.getElementById(tabName).style.display = "block";
+            evt.currentTarget.className += " active";
+        }
+    </script>
+</body>
+</html>

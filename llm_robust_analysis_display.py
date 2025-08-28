@@ -8,6 +8,10 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 import math
 from llm_adversarial_test import test_adversarial_robustness
 from config import MODEL_NAME, TEST_PROMPT, EPSILON
+from output_manager import OutputManager
+
+# Initialize the output manager
+output_mgr = OutputManager()
 
 def debug_save_plot(filename):
     if os.path.exists(filename):
@@ -21,14 +25,12 @@ def run_robust_analysis_display():
     """
     print("Running robust analysis display...")
 
-    # Ensure output directory exists
-    output_dir = "outputs"
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-
-    # Generate unique filename with timestamp
-    timestamp = time.strftime("%Y%m%d-%H%M%S")
-    filename = os.path.join(output_dir, f"robust_analysis_{timestamp}.png")
+    # Get an organized output path for the robust analysis plot
+    filename = output_mgr.get_output_path(
+        filename_prefix="robust_analysis",
+        category="robust_analysis",
+        extension="png"
+    )
 
     # Generate adversarial text using the FGSM attack
     adv_text = test_adversarial_robustness(MODEL_NAME, epsilon=EPSILON, prompt=TEST_PROMPT)
@@ -100,12 +102,12 @@ def plot_fisher_info(fisher_info):
     """
     Plot mean Fisher Information per parameter.
     """
-    output_dir = "outputs"
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-
-    timestamp = time.strftime("%Y%m%d-%H%M%S")
-    filename = os.path.join(output_dir, f"fisher_info_{timestamp}.png")
+    # Get organized output path for the Fisher info plot
+    filename = output_mgr.get_output_path(
+        filename_prefix="fisher_info",
+        category="fisher_info",
+        extension="png"
+    )
 
     param_names = list(fisher_info.keys())
     values = [fisher_info[name].mean().item() for name in param_names]
@@ -128,12 +130,12 @@ def plot_token_distribution(outputs, token_idx, tokenizer, top_k=10):
     """
     Plot the top_k token probability distribution for a given token position.
     """
-    output_dir = "outputs"
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-
-    timestamp = time.strftime("%Y%m%d-%H%M%S")
-    filename = os.path.join(output_dir, f"token_distribution_{timestamp}.png")
+    # Get organized output path for the token distribution plot
+    filename = output_mgr.get_output_path(
+        filename_prefix="token_distribution",
+        category="token_distribution",
+        extension="png"
+    )
 
     # Get logits for the token at position token_idx
     logits = outputs.logits[0, token_idx]

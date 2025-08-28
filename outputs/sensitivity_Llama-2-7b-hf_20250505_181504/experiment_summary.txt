@@ -1,0 +1,15 @@
+WEIGHT SENSITIVITY ANALYSIS
+=========================
+
+Model: meta-llama/Llama-2-7b-hf
+Device: cuda
+Test prompt: What movie is 'In a galaxy far, far away' from?...
+
+Baseline perplexity: 11.4348
+
+Most sensitive layers (top 5):
+1. model.layers.1.mlp.gate_proj.weight: 14508.7353 (delta: 14497.3004)
+2. model.layers.0.self_attn.q_proj.weight: 617.3573 (delta: 605.9225)
+3. model.layers.0.mlp.gate_proj.weight: 258.5933 (delta: 247.1584)
+4. model.layers.3.self_attn.q_proj.weight: 46.1596 (delta: 34.7248)
+5. model.layers.2.self_attn.q_proj.weight: 40.7630 (delta: 29.3282)

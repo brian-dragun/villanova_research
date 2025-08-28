@@ -1,7 +1,14 @@
 import torch
 import math
+import os
+import matplotlib.pyplot as plt
+import numpy as np
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from config import MODEL_NAME, TEST_PROMPT
+from output_manager import OutputManager
+
+# Initialize output manager
+output_mgr = OutputManager()
 
 def evaluate_perplexity(model, tokenizer, prompt):
     model.eval()
@@ -35,6 +42,55 @@ def layer_ablation_experiment(model, tokenizer, prompt, layers_to_ablate):
     
     return baseline, results
 
+def plot_layer_sensitivity(layer_results, baseline, model_name):
+    """
+    Create a plot of layer sensitivity results
+    """
+    # Get output directory from output manager
+    output_dir = output_mgr.get_output_dir(
+        analysis_type="sensitivity",
+        model_name=model_name
+    )
+    
+    # Set up the plot
+    plt.figure(figsize=(12, 6))
+    
+    # Sort layers by sensitivity (perplexity increase after ablation)
+    sorted_layers = sorted(layer_results.items(), key=lambda x: x[1], reverse=True)
+    layer_names = [name.split('.')[-2] + '.' + name.split('.')[-1] for name, _ in sorted_layers]
+    perplexities = [ppl for _, ppl in sorted_layers]
+    
+    # Plot bars
+    bars = plt.bar(range(len(layer_names)), perplexities)
+    plt.axhline(y=baseline, color='r', linestyle='--', label=f'Baseline ({baseline:.2f})')
+    
+    # Label the chart
+    plt.title(f'Layer Sensitivity Analysis: {model_name}')
+    plt.xlabel('Layer')
+    plt.ylabel('Perplexity After Ablation')
+    plt.xticks(range(len(layer_names)), layer_names, rotation=45, ha='right')
+    plt.legend()
+    plt.tight_layout()
+    
+    # Save to output directory
+    plot_path = os.path.join(output_dir, 'layer_sensitivity_plot.png')
+    plt.savefig(plot_path)
+    plt.close()
+    
+    print(f"✅ Saved sensitivity plot: {plot_path}")
+    
+    # Also save the raw data
+    results_path = os.path.join(output_dir, 'layer_sensitivity_results.txt')
+    with open(results_path, 'w') as f:
+        f.write(f"Baseline perplexity: {baseline:.4f}\n\n")
+        f.write("Layer Sensitivity Results (sorted by impact):\n")
+        for i, (layer, ppl) in enumerate(sorted_layers):
+            f.write(f"{i+1}. {layer}: {ppl:.4f} (delta: {ppl - baseline:.4f})\n")
+    
+    print(f"✅ Saved sensitivity results: {results_path}")
+    
+    return plot_path, results_path
+
 def main():
     print(f"Using model: {MODEL_NAME}")
     test_prompts = [TEST_PROMPT]
@@ -43,31 +99,60 @@ def main():
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, trust_remote_code=True)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
-
-    # Print all param names (optional debug)
-    # for n, p in model.named_parameters():
-    #     print(n)
     
+    # Get model name without path
+    model_name_simple = MODEL_NAME.split('/')[-1] if '/' in MODEL_NAME else MODEL_NAME
+
     # Decide layer names depending on LLaMA vs GPT
     model_name_lower = MODEL_NAME.lower()
     if "llama" in model_name_lower:
         # LLaMA 2 uses something like "model.embed_tokens.weight", "model.layers.0.mlp.gate_proj.weight"
-        # Example: let's ablate "model.layers.0.mlp.gate_proj.weight"
-        layers_to_ablate = ["model.layers.0.mlp.gate_proj.weight"]
+        layers_to_ablate = [
+            f"model.layers.{i}.mlp.gate_proj.weight" for i in range(min(5, model.config.num_hidden_layers))
+        ]
+        layers_to_ablate += [
+            f"model.layers.{i}.self_attn.q_proj.weight" for i in range(min(5, model.config.num_hidden_layers))
+        ]
     else:
         # GPT style
-        layers_to_ablate = ["transformer.h.0.mlp.c_fc.weight"]
+        layers_to_ablate = [
+            f"transformer.h.{i}.mlp.c_fc.weight" for i in range(min(5, model.config.num_hidden_layers))
+        ]
+        layers_to_ablate += [
+            f"transformer.h.{i}.attn.c_attn.weight" for i in range(min(5, model.config.num_hidden_layers))
+        ]
 
     # 1) Layer ablation experiment
     ablation_prompt = test_prompts[0]
+    print(f"\nRunning layer ablation experiment with {len(layers_to_ablate)} layers...")
     baseline_ablation, ablation_results = layer_ablation_experiment(model, tokenizer, ablation_prompt, layers_to_ablate)
-    print(f"\nBaseline perplexity on prompt '{ablation_prompt}': {baseline_ablation:.2f}")
+    
+    print(f"\nBaseline perplexity on prompt '{ablation_prompt[:30]}...': {baseline_ablation:.2f}")
     print("Layer Ablation Results:")
-    for layer, ppl in ablation_results.items():
-        print(f"Layer: {layer} -> Perplexity after ablation: {ppl:.2f}")
-
-    # 2) Possibly do scaling experiment, fisher info, etc.
-    # ...
+    for layer, ppl in sorted(ablation_results.items(), key=lambda x: x[1], reverse=True):
+        print(f"Layer: {layer} -> Perplexity after ablation: {ppl:.2f} (delta: {ppl - baseline_ablation:.2f})")
+    
+    # 2) Plot and save results
+    plot_path, results_path = plot_layer_sensitivity(ablation_results, baseline_ablation, model_name_simple)
+    
+    # 3) Save summary to output directory
+    output_dir = os.path.dirname(plot_path)
+    summary_path = os.path.join(output_dir, 'experiment_summary.txt')
+    
+    with open(summary_path, 'w') as f:
+        f.write("WEIGHT SENSITIVITY ANALYSIS\n")
+        f.write("=========================\n\n")
+        f.write(f"Model: {MODEL_NAME}\n")
+        f.write(f"Device: {device}\n")
+        f.write(f"Test prompt: {test_prompts[0][:50]}...\n\n")
+        f.write(f"Baseline perplexity: {baseline_ablation:.4f}\n\n")
+        f.write("Most sensitive layers (top 5):\n")
+        
+        for i, (layer, ppl) in enumerate(sorted(ablation_results.items(), key=lambda x: x[1], reverse=True)[:5]):
+            f.write(f"{i+1}. {layer}: {ppl:.4f} (delta: {ppl - baseline_ablation:.4f})\n")
+    
+    print(f"✅ Analysis complete! Results saved to: {output_dir}")
+    print(f"   - Run 'python manage_outputs.py open-dashboard' to view in dashboard")
 
 if __name__ == "__main__":
     main()
